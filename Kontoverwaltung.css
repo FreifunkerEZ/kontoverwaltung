@@ -1,0 +1,81 @@
+.console {
+	white-space: pre;
+	font-family: monospace;
+}
+.debug {
+}
+.error {
+	color:red;
+}
+table {
+	border-collapse: collapse;
+}
+table,th,td {
+	border: 1px solid black;
+	white-space: pre;
+	font-family: monospace;
+}
+table.records {
+	margin: 20px;
+}
+.elementBrowser {
+	border: 1px solid black;
+	margin: 20px;
+	padding: 5px;
+}
+.elementEditor {
+	min-width: 400px;
+	min-height: 400px;
+	border-radius: 2px;
+	border: 2px solid black;
+	position: fixed;
+	left:200px;
+	top:200px;
+	background-color: white;
+	padding: 20px;
+	box-shadow: 10px 10px 10px rgba(0, 0, 0, 0.5);
+}
+.elementEditor label {
+	display: block;
+	width: 350px;
+	text-align: right;
+}
+
+.tagElement {
+	border-radius: 5px;
+	border: 1px solid red;
+	width: 200px;
+	margin: 5px;
+}
+
+.ruleElement {
+	border-radius: 5px;
+	border: 1px solid red;
+	width: 200px;
+	margin: 5px;
+}
+
+.arbAddRemoveBoxes {
+	border:1px solid gray;
+	margin: 1em 0 0 1em;
+}
+.arbAddRemoveBoxes select {
+	width:15em;
+}
+.arbCanHaveBox, .arbHasBox {
+	display:inline-block;
+}
+.arbControlsBox {
+	display:inline-block;
+}
+.arbControls {
+		height: 110px;
+		float:left;
+}
+
+
+.uploadForm {
+	border:1px solid black;
+	margin: 20px;
+	padding: 5px;
+}
