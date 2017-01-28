@@ -64,6 +64,7 @@ function routeAction($action, $db) {
 			break;
 
 		default:
+			throw new Exception("Unknown action $action");
 			break;
 	}
 }
@@ -88,6 +89,8 @@ try {
 } catch (Exception $e) {
 	print "<h1>EGGSEPTSCHUN!</h1>";
 	e($e->getMessage());
+	e($e->getTraceAsString());
+	exit;
 }
 
 ?>
@@ -177,10 +180,10 @@ try {
 	
 	<div class="elementEditor ruleEditor" style="display: none">
 		<h2>View / Edit Rule <span name="ID">your ID here.</span></h2>
-		<label>Name:           <input type="text"      name="name">			</label>
-		<label>Kommentar:      <input type="text"      name="comment">		</label>
-		<label class="fa fa-search">RegEx:          <input type="text"      name="filter">		</label>
-		<label class="fa fa-glass"> Luxus:          <input type="text"      name="luxus">		</label>
+		<label						>Name:          <input type="text"      name="name">			</label>
+		<label						>Kommentar:     <input type="text"      name="comment">		</label>
+		<label class="fa fa-search"	>RegEx:         <input type="text"      name="filter">		</label>
+		<label class="fa fa-glass"	>Luxus:         <input type="text"      name="luxus">		</label>
 		<label class="fa fa-refresh">Wiederholung:  <input type="text"      name="recurrence">	</label>
 		
 		<div class="arbAddRemoveBoxes">
@@ -192,12 +195,12 @@ try {
 			</div>
 			<div class="arbControlsBox">
 				<div class="arbControls">
-					<button>
+					<button onclick="arbAddButton(this);">
 						<i class="fa fa-arrow-left" aria-hidden="true"></i>
 						<i class="fa fa-plus" aria-hidden="true"></i>
 					</button>
 					<br><br>
-					<button>
+					<button onclick="arbRemoveButton(this);">
 						<i class="fa fa-times" aria-hidden="true"></i>
 						<i class="fa fa-arrow-right" aria-hidden="true"></i>
 					</button>

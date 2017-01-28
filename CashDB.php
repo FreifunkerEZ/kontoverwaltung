@@ -365,7 +365,7 @@ class CashDB extends CashDBInit {
 		return $this->toArray($this->runQuery($sql));
 	}
 	
-	function ruleGetTags($ruleID) {
+	public function ruleGetTags($ruleID) {
 		$sql = "SELECT tagID FROM ruleXtag WHERE ruleID = '$ruleID'";
 		$ret = $this->runQuery($sql);
 		$has = $this->toArraySingleRow($ret);
@@ -377,35 +377,66 @@ class CashDB extends CashDBInit {
 		return array('has' => $has, 'canHave' => $canHave);
 	}
 	
-	/**
-	 * turns an runQuery() return into an array by running 
-	 * fetchArray(SQLITE3_ASSOC) and stuffing the result into
-	 * a numeric array until it ends.
-	 * @param SQLite3Result  $ret
-	 * @return numeric array full of hashes, one hash for each line
-	 */
-	private function toArray($ret) {
-		$output = array();
-		while ($row = $ret->fetchArray(SQLITE3_ASSOC)) {
-			$output[] = $row;
-		}
-		return $output;
+	public function ruleSave() {
+		if (empty($_POST['params']))
+			throw new Exception ("no saving without params");
+		
+		$input = json_decode($_POST['params'],'array');
+		if ('NEW' == $input['ID']) 
+			$input['ID'] = $this->ruleCreate();
+		
+		if (is_numeric($input['ID']))
+			$this->ruleUpdate($input);
+		else
+			throw new Exception("something wrong with the tag's ID: ".$input['ID']);
 	}
 	
 	/**
-	 * if the result has only a single row, you may use this to turn the
-	 * sqlite response directly into a single, numeric array.
-	 * @param SQLite3Result  $ret
-	 * @return numeric array containing the lines of the result-set.
+	 * creates a new and empty rule.
+	 * inserts the current epoch-timestamp as name.
+	 * @return numeric the ID of the newly created record.
 	 */
-	private function toArraySingleRow($ret) {
-		$output = array();
-		while ($row = $ret->fetchArray(SQLITE3_ASSOC)) {
-			#turn row-hash into simple array
-			$ar = array_values($row);
-			#then shift off the first element and store it.
-			$output[] = array_shift($ar);
-		}
-		return $output;
+	protected function ruleCreate() {
+		$now = time();
+		$sql = "INSERT INTO `rules` (`name`) VALUES ('$now')";
+		$this->runQuery($sql);
+		
+		$sql = "SELECT LAST_INSERT_ROWID();";
+		$ret = $this->runQuery($sql);
+		$out = $this->toArraySingleRow($ret);
+		return array_shift($out);
 	}
+	
+	protected function ruleUpdate($input) {
+		$sql = sprintf("UPDATE `rules` "
+			. "SET `name`='%s', 'comment'='%s', 'filter'='%s', 'luxus'='%s', 'recurrence'='%s' "
+			. "WHERE ID=%s "
+			,$input['name']
+			,$input['comment']
+			,$input['filter']
+			,$input['luxus']
+			,$input['recurrence']
+			,$input['ID']
+		);
+		#d($sql);
+		$this->runQuery($sql);
+		
+		$this->ruleResetTags($input);
+	}
+	
+	protected function ruleResetTags($input) {
+		#first remove all tags
+		$ruleID = $input['ID'];
+		$sql = "DELETE FROM ruleXtag WHERE ruleID=$ruleID";
+		$this->runQuery($sql);
+		
+		#then set all tags anew
+		foreach ($input['tags'] as $tagID) {
+			$sql = "INSERT INTO 'ruleXtag' ('ruleID', 'tagID') VALUES ('$ruleID', '$tagID')";
+			$this->runQuery($sql);
+		}
+	}
+	
+	
+	
 }
