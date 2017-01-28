@@ -145,6 +145,7 @@ try {
 	<div class="elementBrowser">
 		<div>
 			<h2>Available Rules:</h2>
+			<button onclick="ruleNewOpen(this);">New Rule</button>
 			<?php 
 				foreach ($db->rulesList() as $rule) { 
 				$allTags = $db->ruleGetTags($rule['ID']);
