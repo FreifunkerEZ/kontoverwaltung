@@ -47,6 +47,12 @@ function tagSave(button){
 		.fail(function(data){alert('save failed.');console.log(data);})
 	;
 }
+
+function tagDelete(button) {
+	if (confirm("Dieses Tag wirklich löschen? TODO noch nicht klar was dann passiert."))
+		deleteSomething(button, 'tagDelete');
+}
+
 function ruleOpenEditor(ruleDiv) {
 	var editor = $('.ruleEditor').show();
 	var input = $(ruleDiv);
@@ -175,5 +181,33 @@ function ruleSave(button){
 		function (data) {console.log(data);location.reload();}
 	)
 		.fail(function(data){alert('save failed.');console.log(data);})
+	;
+}
+function ruleDelete(button) {
+	if (confirm("Diese Regel wirklich löschen? \n\
+			Die Buchungen bleiben davon unberührt.\n\
+			Die Regel kann nicht wiederhergestellt werden."
+	))
+		deleteSomething(button, 'ruleDelete');
+}
+function ruleApply(button) {
+	var ruleID = $(button).parent().find("[name=ID]").text();
+	$.post(
+		'?action=ruleApply',
+		{ruleID : ruleID},
+		function (data) {console.log(data);location.reload();}
+	)
+	.fail(function(data){alert("Failed to apply rule.");console.log(data);})
+	;
+}
+
+function deleteSomething(button,action) {
+	var ID = $(button).parent().find("[name=ID]").text();
+	$.post(
+		'?action='+action,
+		{ID : ID},
+		function (data) {console.log(data);location.reload();}
+	)
+	.fail(function(data){alert(action+" failed");console.log(data);})
 	;
 }

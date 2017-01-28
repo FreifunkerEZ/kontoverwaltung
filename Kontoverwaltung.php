@@ -59,8 +59,19 @@ function routeAction($action, $db) {
 		case 'tagSave':
 			$db->tagSave();
 			break;
+		case 'tagDelete':
+			$db->tagDelete();
+			break;
 		case 'ruleSave':
 			$db->ruleSave();
+			break;
+		case 'ruleDelete':
+			$db->ruleDelete();
+			break;
+		case 'ruleApply':
+			if (!isset($_POST['ruleID']))
+				throw new Exception("no rule id, no applying");
+			$db->ruleApply($_POST['ruleID']);
 			break;
 
 		default:
@@ -143,6 +154,7 @@ try {
 		<label>Gerechtfertigt: <input type="checkbox"  name="justifies">	</label>
 		<button onclick="$(this).parent().hide();">Close</button>
 		<button onclick="tagSave(this);">Save</button>
+		<button onclick="tagDelete(this);">Delete</button>
 	</div>
 
 	<div class="elementBrowser">
@@ -218,6 +230,8 @@ try {
 		
 		<button onclick="$(this).parent().hide();">Close</button>
 		<button onclick="ruleSave(this);">Save</button>
+		<button onclick="ruleDelete(this);">Löschen</button>
+		<button onclick="ruleApply(this);">Anwenden</button>
 	</div>
 
 

@@ -141,12 +141,12 @@ EOF;
 			CREATE TABLE `rules` (
 			--new records will be inspected by these rules.
 			--if they match, the buchung will be manipulated (tags added, luxus and recurrence changes)
-				`ID`	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-				`name`	TEXT,
+				`ID`		INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+				`name`		TEXT,
 				'comment'	TEXT,
-				'filter' TEXT,
+				'filter'	TEXT,
 					--regex goes in here in format /regex/ so that it can be directly used in preg_something()
-				'luxus'	INTEGER,
+				'luxus'		INTEGER,
 					--what to set matching buchungen to
 				'recurrence' INTEGER
 					--for how many months is this payment? 
@@ -166,9 +166,18 @@ EOF;
 			--these tags will be applied to the buchung if that rule matches.
 			--when a rule matches 0 to many tags may be applied
 				`ruleID`	INTEGER NOT NULL,
-				`tagID`		INTEGER NOT NULL
+				`tagID`		INTEGER NOT NULL,
+				
+				'origin'	TEXT,
+					--who has added this tag to the buchung? a rule or a user?
+				
+				UNIQUE(ruleID, tagID) ON CONFLICT IGNORE
+					--there should be only one rule<->tag relationship.
+					--if the relationship is set again, it should be ignored.
 			);
 EOF;
+		#CREATE TABLE a (i INT, j INT, UNIQUE(i, j) ON CONFLICT REPLACE);
+
 		$this->runQuery($sql);
 		d("Database table 'ruleXtag' initialized");
 	}

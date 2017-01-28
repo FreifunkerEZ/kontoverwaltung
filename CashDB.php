@@ -31,7 +31,7 @@ class CashDB extends CashDBInit {
 			return;
 		
 		$fullPath = realpath($path);
-		$backupFile = dirname($fullPath) .'/'. date('Y-m-d')."-KontoDatenbank.SQLite3";
+		$backupFile = dirname($fullPath) .'/'. date('Y-m-d')."-Backup-KontoDatenbank.SQLite3";
 		if (file_exists($backupFile))
 			return;
 		
@@ -267,7 +267,39 @@ class CashDB extends CashDBInit {
 	}
 	
 	public function printData() {
+		$sql = "SELECT	Kontonummer	,
+						Buchungstag	 ,
+						Wertstellung	,
+						AuftraggeberEmpfaenger	 ,
+						Buchungs	,
+						VWZ1	,
+						VWZ2	,
+						VWZ3	,
+						VWZ4	,
+						VWZ5	,
+						VWZ6	,
+						VWZ7	,
+						VWZ8	,
+						VWZ9	,
+						VWZ10	,
+						VWZ11	,
+						VWZ12	,
+						VWZ13	,
+						VWZ14	,
+						Betrag	 ,
+						Kontostand	,
+						Waehrung	,
+						ID	,
+						importdate , 
+						BuchungstagSortable ,
+						rawCSV	,
+						luxus					
+				 FROM buchungen";
 		$sql = "SELECT * FROM buchungen";
+		
+		
+		
+		
 		$ret = $this->runQuery($sql);
 		
 		$headers = $this->catVWZ($this->csvHeaders, 'isheader');
@@ -276,6 +308,7 @@ class CashDB extends CashDBInit {
 		$headers[] = 'Buchungstag';
 		$headers[] = 'rawCSV';
 		$headers[] = 'luxus';
+		
 		print "<table class='records'>";
 		print "<tr>";
 		foreach ($headers as $header) {
@@ -293,6 +326,25 @@ class CashDB extends CashDBInit {
 		}
 		print "</table>";
 	}
+	
+	private function concatenateFields($record, $from, $to) {
+		$output = array();
+		$bucket = array();
+		foreach ($record as $index => $field) {
+			if ($index < $from || $index > $to) {	#if outside of range
+				$output[] = $field;					#copy field and done
+				continue;
+			}
+			
+			if (trim($field))	#if not empty
+				$bucket[] = $field; #put field into bucket
+			
+			if ($to == $index) #on the last field insert bucket
+				$output[] = implode("\n", $bucket);
+		}
+		return $output;
+	}
+	
 	
 	private function catVWZ($record, $isHeader = false) {
 		#VWZ is index 5-18
@@ -360,6 +412,14 @@ class CashDB extends CashDBInit {
 		print $sql;
 		$this->runQuery($sql);
 	}
+	public function tagDelete() {
+		if (!isset($_POST['ID']))
+			throw new Exception("no ID");
+		
+		
+		throw new Exception("no code");
+		#TODO tags should not be deletable if there are still buchungen with them. that would cause inconsistency.
+	}
 	public function rulesList($filter = '') {
 		$sql = "SELECT * FROM rules".($filter ? ' WHERE '.$filter : '');
 		return $this->toArray($this->runQuery($sql));
@@ -424,6 +484,11 @@ class CashDB extends CashDBInit {
 		$this->ruleResetTags($input);
 	}
 	
+	/**
+	 * removes all tags from the rule.
+	 * puts the tags from $input back in.
+	 * @param hash $input
+	 */
 	protected function ruleResetTags($input) {
 		#first remove all tags
 		$ruleID = $input['ID'];
@@ -437,6 +502,80 @@ class CashDB extends CashDBInit {
 		}
 	}
 	
+	public function ruleDelete() {
+		if (empty($_POST['ID']) || !is_numeric($_POST['ID']))
+			throw new Exception ("need ID");
+		
+		$id  = $_POST['ID'];
+		$sql = "DELETE FROM ruleXtag WHERE ruleID = '$id'";
+		$this->runQuery($sql);
+		
+		$sql = "DELETE FROM rules WHERE ID = $id";
+		$this->runQuery($sql);
+	}
 	
+	/**
+	 * applies a single rule to all buchungen.
+	 */
+	public function ruleApply($ruleID) {
+		#get list of tags that go with this rule.
+		$sqlTags = "SELECT tagID FROM 'ruleXtag' WHERE ruleID = $ruleID";
+		$retTags = $this->runQuery($sqlTags);
+		$tags = $this->toArraySingleRow($retTags);
+		if (!$tags) { #no tags, no work.
+			d("Rule $ruleID has no tags");
+			return;
+		}
+		d("will apply following tags: ".implode(', ', $tags));
+		
+		#get the regex for the rule
+		$sqlRule = "SELECT filter FROM 'rules' WHERE ID = $ruleID";
+		$retRule = $this->runQuery($sqlRule);
+		$ruleAr  = $this->toArraySingleRow($retRule);
+		$filter  = array_shift($ruleAr);
+		d("Rule $ruleID has filter '$filter'");
+		if (!$filter)
+			return;
+		
+		#get a list of all buchungen
+		$sql = "SELECT * FROM buchungen";
+		$retBuchungen = $this->runQuery($sql);
+		
+		foreach ($this->toArray($retBuchungen) as $buchungID => $buchung) {
+			if ($this->buchungMatchesFilter($buchung, $filter))
+				$this->buchungApplyTags($buchungID, $tags, $ruleID);
+		}
+	}
 	
+	private function buchungApplyTags($buchungID, $tags, $ruleID) {
+		$templateInsert = "INSERT OR REPLACE "
+				. "INTO 'buchungXtag' (buchungID, tagID, origin) "
+				. "VALUES ('%s','%s','$ruleID')"
+		;
+
+		foreach ($tags as $tagID) {
+				$sqlInsert = sprintf($templateInsert, $buchungID, $tagID);
+				$this->runQuery($sqlInsert);
+		}
+	}
+	
+	/**
+	 * looks at a buchung.
+	 * figures out if the filter applies.
+	 * @param hash $buchung the record as it comes from the DB
+	 * @param string $filter a complete RegEx pattern
+	 * @return boolean
+	 */
+	private function buchungMatchesFilter($buchung, $filter) {
+		$dataAr = array();
+		foreach ($buchung as $key => $value) {
+			$dataAr[] = "$key=$value";
+		}
+		$dataStr = implode(',', $dataAr);
+		
+		if (preg_match($filter, $dataStr))
+			return true;
+		else
+			return false;
+	}
 }
