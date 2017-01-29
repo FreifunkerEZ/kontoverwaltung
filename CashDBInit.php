@@ -95,6 +95,13 @@ class CashDBInit extends CashDBbasics {
 				*/
 					'luxus'			INTEGER		
 				
+				--how many months does this buchung cover?
+				--12 means that this buchung will be once in 12 months.
+				--3  is every three monts, so 4 times per year.
+				--0  means does not repeat at all
+					`recurrence`	INTEGER
+
+				
 			);
 EOF;
 		$this->runQuery($sql);

@@ -267,64 +267,91 @@ class CashDB extends CashDBInit {
 	}
 	
 	public function printData() {
-		$sql = "SELECT	Kontonummer	,
-						Buchungstag	 ,
-						Wertstellung	,
-						AuftraggeberEmpfaenger	 ,
-						Buchungs	,
-						VWZ1	,
-						VWZ2	,
-						VWZ3	,
-						VWZ4	,
-						VWZ5	,
-						VWZ6	,
-						VWZ7	,
-						VWZ8	,
-						VWZ9	,
-						VWZ10	,
-						VWZ11	,
-						VWZ12	,
-						VWZ13	,
-						VWZ14	,
-						Betrag	 ,
-						Kontostand	,
-						Waehrung	,
-						ID	,
-						importdate , 
-						BuchungstagSortable ,
-						rawCSV	,
-						luxus					
-				 FROM buchungen";
+		$headers = array(
+			'ID',
+			'Buchungstag',
+			'AuftraggeberEmpfaenger',
+			'Buchungstext',
+			'Verwendungszweck',
+			'Betrag',
+			'Wdh',
+			'Luxus',
+			'Tags',
+		);
+		$colNames = array(
+			'ID',
+			'Buchungstag',
+			'AuftraggeberEmpfaenger',
+			'Buchungstext',
+			'Verwendungszweck',
+			'Betrag',
+			'recurrence',
+			'luxus',
+			'buchungXtags',
+		);
+		$data = array(
+			'ID',
+			'Kontostand',
+			'importdate',
+			'BuchungstagSortable',
+			'rawCSV',
+			
+		);
+		
 		$sql = "SELECT * FROM buchungen";
-		
-		
-		
-		
 		$ret = $this->runQuery($sql);
 		
-		$headers = $this->catVWZ($this->csvHeaders, 'isheader');
-		$headers[] = 'ID';
-		$headers[] = 'importdate';
-		$headers[] = 'Buchungstag';
-		$headers[] = 'rawCSV';
-		$headers[] = 'luxus';
-		
 		print "<table class='records'>";
+		
 		print "<tr>";
 		foreach ($headers as $header) {
 			print("<th>$header</th>");
 		}
-		
 		print "</tr>";
-		while ($row = $ret->fetchArray(SQLITE3_NUM)) {
-			print "<tr>";
-			$row = $this->catVWZ($row);
-			foreach ($row as $index => $field) {
-				print "<td> $field </td>\n";
+		
+		while ($buchung = $ret->fetchArray(SQLITE3_ASSOC)) {
+			$this->collapseVWZ($buchung);
+			$buchungTags = $this->getTagsForBuchung($buchung['ID']);
+			$buchung['buchungXtags'] = implode(',',$buchungTags);
+			
+			print "<tr ";
+			foreach ($data as $columnName) {
+				printf("data-$columnName='' ", $buchung[$columnName]);
+			}
+			print " >";
+			
+			foreach ($colNames as $columnName) {
+				print "<td> $buchung[$columnName] </td>\n";
 			}
 			print "</tr>";
 		}
 		print "</table>";
+	}
+	/**
+	 * gets you all the tagIDs associated with the buchungID.
+	 * @param integer $buchungID
+	 * @return array
+	 */
+	public function getTagsForBuchung($buchungID) {
+		$sql = "SELECT tagID from buchungXtag WHERE buchungID = $buchungID";
+		$ret = $this->runQuery($sql);
+		return $this->toArraySingleRow($ret);
+	}
+	
+	/**
+	 * finds all VWZ-elements 1..14.
+	 * sticks the ones which are not empty together with br-tags.
+	 * puts them into a new field called "Verwendungszweck"
+	 * @param has $row BY REFERENCE - gets a new field called "Verwendungszweck"
+	 */
+	private function collapseVWZ(&$row) {
+		$bucket = array();
+		for ($i = 1; $i <= 14; $i++) {
+			$vwz = "VWZ$i";
+			if ($row[$vwz])
+				$bucket[] = $row[$vwz];
+		}
+		$row['Verwendungszweck'] = implode('<br>', $bucket);
 	}
 	
 	private function concatenateFields($record, $from, $to) {
@@ -518,6 +545,8 @@ class CashDB extends CashDBInit {
 	 * applies a single rule to all buchungen.
 	 */
 	public function ruleApply($ruleID) {
+		#TODO apply LUXUS and RECURRING to buchung
+		
 		#get list of tags that go with this rule.
 		$sqlTags = "SELECT tagID FROM 'ruleXtag' WHERE ruleID = $ruleID";
 		$retTags = $this->runQuery($sqlTags);
@@ -542,8 +571,12 @@ class CashDB extends CashDBInit {
 		$retBuchungen = $this->runQuery($sql);
 		
 		foreach ($this->toArray($retBuchungen) as $buchungID => $buchung) {
-			if ($this->buchungMatchesFilter($buchung, $filter))
-				$this->buchungApplyTags($buchungID, $tags, $ruleID);
+			if (!$this->buchungMatchesFilter($buchung, $filter))
+				continue;
+			
+			$this->buchungApplyTags($buchungID, $tags, $ruleID);
+			$this->buchungApplyRecurrence($buchungID, $ruleID);
+			$this->buchungApplyLuxus($buchungID, $ruleID);
 		}
 	}
 	
@@ -552,11 +585,62 @@ class CashDB extends CashDBInit {
 				. "INTO 'buchungXtag' (buchungID, tagID, origin) "
 				. "VALUES ('%s','%s','$ruleID')"
 		;
-
+		
 		foreach ($tags as $tagID) {
 				$sqlInsert = sprintf($templateInsert, $buchungID, $tagID);
 				$this->runQuery($sqlInsert);
 		}
+	}
+	
+	private function buchungApplyLuxus($buchungID, $ruleID) {
+		$this->copyValueFromRuleToBuchung($ruleID, $buchungID, 'luxus');
+	}
+	private function buchungApplyRecurrence($buchungID, $ruleID) {
+		$this->copyValueFromRuleToBuchung($ruleID, $buchungID, 'recurrence');
+	}
+	
+	/**
+	 * looks at the rules value called $name.
+	 * if value is set, it tries to apply it to buchung.
+	 * if buchung already has a value at $name set, they must match.
+	 * if not -> exception because that is thought to be a corruption.
+	 * it must be fixed by the user.
+	 * 
+	 * @param int $buchungID
+	 * @param int  $ruleID
+	 * @param string $name the name of the value to be copied.
+	 * must be the same in table buchungen and rules to work.
+	 * @return NULL
+	 * @throws Exception if there is a change in $name's value detected.
+	 */
+	private function copyValueFromRuleToBuchung($ruleID, $buchungID, $name) {
+		$sqlGetNewVal = "SELECT $name FROM rules WHERE ID=$ruleID";
+		$newVal = $this->toSingleValue($this->runQuery($sqlGetNewVal));
+		
+		if ($newVal == '')
+			return; #no value, no copy
+		
+		$sqlGetCurrentVal = "SELECT $name FROM buchungen WHERE ID=$buchungID";
+		$currentVal = $this->toSingleValue($this->runQuery($sqlGetCurrentVal));
+		
+		if ($currentVal == $newVal)
+			return; #both the same? no work
+		
+		if ($currentVal == '') { #no old value? set.
+			$sqlSetVal = "UPDATE `buchungen` SET `$name`=$newVal WHERE `ID`=$buchungID;";
+			$this->runQuery($sqlSetVal);
+			return; #work done
+		}
+		
+		#still here? last thing left: old value != new value. corruption
+		throw new Exception ("Cannot apply rule $ruleID's $name to buchung $buchungID because buchung already has $name of $currentVal set and rule requires $newVal");
+		#TODO this corruption-exception probably going to fly in my face rather soon. 
+		#no idea how to handle that for now. 
+		#i think it requires some sort of manual resolving. 
+		#not sure how that is supposed to look like. 
+		#it should only come from rule-error, 
+		#as a buchung can never have two different recurrences.
+		
 	}
 	
 	/**

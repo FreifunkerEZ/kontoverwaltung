@@ -29,7 +29,7 @@ function tagNewOpen() {
 	var editor = $('.tagEditor').show();
 	editor.find('[name=ID]').text('NEW');
 	editor.find('input').val('');
-	editor.find('[name=justifies]').prop('checked', false);
+	editor.find('[name=justifies]').prop('checked', true);
 }
 function tagSave(button){
 	var editor = $(button).parent();
@@ -84,8 +84,8 @@ function ruleOpenEditor(ruleDiv) {
 function arbAddRemoveBoxFill(box, content) {
 	box.find('option').remove();
 	if (!content) {
-		console.log('no content - use all tags');
-		console.log(tags)
+		//console.log('no content - use all tags');
+		//console.log(tags)
 		var tagsArray = array_values(tags);
 		for (var i=0; i < tagsArray.length; i++) {
 			var tagString = tagsArray[i].ID+': '+tagsArray[i].name;
@@ -98,7 +98,7 @@ function arbAddRemoveBoxFill(box, content) {
 		}
 	}
 	else {
-		console.log('content present - use specific tags');
+		//console.log('content present - use specific tags');
 		for (var i=0; i < content.length; i++) {
 			var tagID = content[i];
 			var tagString = tagID+': '+tags[tagID].name;

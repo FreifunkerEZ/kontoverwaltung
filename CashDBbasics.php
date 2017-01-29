@@ -63,6 +63,16 @@ class CashDBbasics extends SQLite3 {
 		}
 		return $output;
 	}
-
+	
+	/**
+	 * gets the first column of the first row of the return.
+	 * 
+	 * @param SQLiteResponse $ret
+	 * @return mixed
+	 */
+	protected function toSingleValue($ret) {
+		$array = $this->toArraySingleRow($ret);
+		return array_shift($array);
+	}
 	
 }

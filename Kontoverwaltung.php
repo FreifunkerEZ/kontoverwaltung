@@ -108,6 +108,8 @@ try {
 <!DOCTYPE html>
 <html>
 	<head>
+		<title>Kontoverwaltung</title>
+		
 		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 		<script src="https://use.fontawesome.com/de9a1cbb80.js"></script>
 		<script src="Kontoverwaltung.js"></script>
