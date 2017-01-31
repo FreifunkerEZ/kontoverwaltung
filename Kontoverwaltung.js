@@ -15,12 +15,12 @@ function array_values (input) { // eslint-disable-line camelcase
   return tmpArr
 }
 
-function tagOpenEditor(tagDiv) {
+function tagOpenEditor(editDiv) {
 	var editor = $('.tagEditor').show();
-	var input = $(tagDiv);
+	var input = $(editDiv).parent();
 	var justifies = (input.attr('data-justifies') === '1' ? true : false);
 	editor.find('[name=ID]').text(input.attr('data-id'));
-	editor.find('[name=name]').val(input.attr('data-name'));
+	editor.find('[name=name]').val(input.attr('data-name')).focus();
 	editor.find('[name=comment]').val(input.attr('title'));
 	editor.find('[name=color]').val(input.attr('data-color'));
 	editor.find('[name=justifies]').prop('checked', justifies);
@@ -28,7 +28,9 @@ function tagOpenEditor(tagDiv) {
 function tagNewOpen() {
 	var editor = $('.tagEditor').show();
 	editor.find('[name=ID]').text('NEW');
+	editor.find('[name=name]').focus();
 	editor.find('input').val('');
+	editor.find('input[type=color]').val('#FFFFFF');
 	editor.find('[name=justifies]').prop('checked', true);
 }
 function tagSave(button){
@@ -52,13 +54,63 @@ function tagDelete(button) {
 	if (confirm("Dieses Tag wirklich löschen? TODO noch nicht klar was dann passiert."))
 		deleteSomething(button, 'tagDelete');
 }
+function tagFilterToggle(tagDiv) {
+	//first acutally toggle tag
+	if ('true' === $(tagDiv).attr('data-showTag'))
+		$(tagDiv).attr('data-showTag', 'false');
+	else 
+		$(tagDiv).attr('data-showTag', 'true');
+	
+	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
+			.toggleClass('fa-eye fa-eye-slash')
+	;
+	tagFilterShow('filtered');
+}
+
+/**
+ * shows or hides rows in the buchungen table
+ * 
+ * @param {string} showWhat - can be 
+ * 'filtered': shows buchungen according to their tags and their show/hide-settings.
+ * 'all': shows all buchungen.
+ * 'untagged': shows only buchungen with no tags on.
+ * @returns {undefined}
+ */
+function tagFilterShow(showWhat) {
+	var rows = $(document).find('table.records tr');
+	//reset playing field: make everything go away and show headers.
+	rows.hide().find('th').parent().show();
+	
+	if ('filtered' === showWhat) {
+		//find a list of all the things that should be visible
+		var selected = $('.tagBrowser').find('div[data-showTag=true]');
+		//make them show up one after another
+		for (var i = 0; i < selected.length; i++) {
+			var tagId = $(selected[i]).attr('data-ID');
+			rows.filter('[data-hasTagId='+tagId+']').show();
+		}
+	}
+	else if ('all' === showWhat) {
+		rows.show();
+	}
+	else if ('untagged' === showWhat) {
+		rows.filter(':not([data-hasTagId])').show()
+	}
+	else {
+		alert("unknown filtermethod " + showWhat);
+	}
+
+
+
+		
+}
 
 function ruleOpenEditor(ruleDiv) {
 	var editor = $('.ruleEditor').show();
 	var input = $(ruleDiv);
 	
 	editor.find('[name=ID]').text(input.attr('data-id'));
-	editor.find('[name=name]').val(input.attr('data-name'));
+	editor.find('[name=name]').val(input.attr('data-name')).focus();
 	editor.find('[name=comment]').val(input.attr('title'));
 	editor.find('[name=filter]').val(input.attr('data-filter'));
 	editor.find('[name=luxus]').val(input.attr('data-luxus'));
@@ -93,6 +145,7 @@ function arbAddRemoveBoxFill(box, content) {
 					.text(tagString)
 					.attr('value',tagsArray[i].ID)
 					.attr('data-tagID',tagsArray[i].ID)
+					.attr('ondblclick','adbHandleDoubleClick(this)')
 					.appendTo(box)
 			;
 		}
@@ -106,10 +159,17 @@ function arbAddRemoveBoxFill(box, content) {
 					.text(tagString)
 					.attr('value',tagID)
 					.attr('data-tagID',tagID)
+					.attr('ondblclick','adbHandleDoubleClick(this)')
 					.appendTo(box)
 			;
 		}
 	}
+}
+function adbHandleDoubleClick(elOption) {
+	if ($(elOption).parents('.arbCanHaveBox').length)
+		arbAddButton(elOption);
+	else
+		arbRemoveButton(elOption);
 }
 
 function arbAddButton(button) {
@@ -155,8 +215,11 @@ function selectBoxSort(box) {
 }
 function ruleNewOpen(button) {
 	var editor = $('.ruleEditor').show();
+	editor.find('input[name=name]').focus();
+	
 	editor.find('[name=ID]').text('NEW');
 	editor.find('input').val('');
+	editor.find('input[name=filter]').val('//');
 	var hasBox = editor.find('.arbHasBox > select');
 	arbAddRemoveBoxFill(hasBox,[]); //empty has box as new tags don't have anything
 	var canHaveBox = editor.find('.arbCanHaveBox > select');

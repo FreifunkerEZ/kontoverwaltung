@@ -47,6 +47,11 @@ table.records {
 	width: 200px;
 	margin: 5px;
 }
+.tagOnTheRight {
+	text-align: right;
+	display: inline-block;
+	float:right;
+}
 
 .ruleElement {
 	border-radius: 5px;

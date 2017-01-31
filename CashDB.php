@@ -266,7 +266,13 @@ class CashDB extends CashDBInit {
 		#compare given sum to calculated sum
 	}
 	
-	public function printData() {
+	/**
+	 * Prints a nice table with all the buchungen in the database.
+	 * i know it should not do this, but currently i got no better idea quickly.
+	 * 
+	 * @param string $class which CSS-class the table should have.
+	 */
+	public function printData($class) {
 		$headers = array(
 			'ID',
 			'Buchungstag',
@@ -287,7 +293,7 @@ class CashDB extends CashDBInit {
 			'Betrag',
 			'recurrence',
 			'luxus',
-			'buchungXtags',
+			'tags',
 		);
 		$data = array(
 			'ID',
@@ -295,13 +301,12 @@ class CashDB extends CashDBInit {
 			'importdate',
 			'BuchungstagSortable',
 			'rawCSV',
-			
 		);
 		
 		$sql = "SELECT * FROM buchungen";
 		$ret = $this->runQuery($sql);
 		
-		print "<table class='records'>";
+		print "<table class='$class'>";
 		
 		print "<tr>";
 		foreach ($headers as $header) {
@@ -311,12 +316,15 @@ class CashDB extends CashDBInit {
 		
 		while ($buchung = $ret->fetchArray(SQLITE3_ASSOC)) {
 			$this->collapseVWZ($buchung);
-			$buchungTags = $this->getTagsForBuchung($buchung['ID']);
-			$buchung['buchungXtags'] = implode(',',$buchungTags);
+			$buchungTags			= $this->getTagsForBuchung($buchung['ID']);
+			$buchung['tags']		= implode(',',$buchungTags);
 			
 			print "<tr ";
 			foreach ($data as $columnName) {
-				printf("data-$columnName='' ", $buchung[$columnName]);
+				printf("data-$columnName='%s' ", $buchung[$columnName]);
+			}
+			foreach ($buchungTags as $tagId) {
+				printf("data-hasTagId='%s' ", $tagId);
 			}
 			print " >";
 			

@@ -39,12 +39,31 @@ class CashDBInit extends CashDBbasics {
 			they automatically become justified when their VWZ matches anything.
 		add import-date to buchungen?
 			
+		the justification comes from the rule. 
+		 * the rule sets the recurrence.
+		 * the rule strictly defines which buchung is affected by its filter.
+		 * currently the justification comes from the tag.
+		 * but a tag can be set by multiple rules.
+		 * after a tag was set, it is not clear which rule applied it.
+		 * so justification must be noted at the buchung.
+		 * it could be a CSV of the rules which have caused it.
+		 * that makes the buchungs status clear.
+		 * justified? empty = no || not empty = yes
+		 * and it leaves a trace to the rule which has set it.
+	
 	reporting needs
 		want to plot recurring cost vs flexible cost
 		want to plot different categories (group by: versicherung, transport, wohnung - add everything else to rest)
 		want to plot by luxus (group by luxus)
 		want to know which buchungen are not explained yet.
 		how to sort records by time? need to turn buchungstag into epoch or Y-m-d during import?
+		 * 
+	#TODO RFE? track if buchungen are missing? 
+		 * i.e. expect money coming in or going out.
+		 * should i be alerted if that did not happen?
+		 * gehalt has not come?
+		 * versicherung hat nicht abgebucht?
+		 * i think not. maybe later?
 		*/
 		
 		$sql =<<<EOF
@@ -155,6 +174,12 @@ EOF;
 					--regex goes in here in format /regex/ so that it can be directly used in preg_something()
 				'luxus'		INTEGER,
 					--what to set matching buchungen to
+				'amountLow'	REAL,
+				'amountHigh'REAL,
+					--OPTIONAL. what amount of money is to be expected by the buchung for the filter to apply
+					--enter negative numbers for cash leaving and positive numbers for cash coming (gehalt etc)
+				'expected
+					--was this buchung expected? does applying this rule justify the transaction?
 				'recurrence' INTEGER
 					--for how many months is this payment? 
 					/*

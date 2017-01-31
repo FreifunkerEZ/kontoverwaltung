@@ -123,29 +123,44 @@ try {
 
 <body>
 	<?php ob_end_flush();?>
-	<div class="elementBrowser">
-		<div>
-			<h2>Available Tags:</h2>
-			<button onclick="tagNewOpen();">New Tag</button>
-			<?php foreach ($db->tagsList() as $tag) { ?>
-				<div 
-					class			="tagElement" 
-					style			="background-color: <?php print $tag['color'];?>;"
-					title			="<?php print $tag['comment']?>" 
-					data-ID		    ="<?php print $tag['ID'];?>"
-					data-name		="<?php print $tag['name'];?>"
-					data-justifies	="<?php print $tag['justifies'];?>"
-					data-color		="<?php print $tag['color'];?>"
-					onclick			="tagOpenEditor(this);"
-				>
-					<?php print ($tag['justifies'] 
-							? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
-							: '<i class="fa fa-fw fa-question" title="Dieses Tag modifiziert den Erklärt-Status nicht."></i>');?>
-					<?php print $tag['name'];?>
-				</div>
-			<?php } ?>
-		</div>
+	<div class="elementBrowser tagBrowser">
+		<h2>Buchungen Filtern mit Tags:</h2>
 		
+		<button onclick="tagNewOpen();">New Tag</button>
+		<button onclick="tagFilterShow('untagged');" 
+				title="Alle Ohne Tags anzeigen"
+		>Show Untagged</button>
+		<button onclick="tagFilterShow('all');">Show All</button>
+		<button onclick="tagFilterShow('filtered');">Show Filtered</button>
+		
+		<?php foreach ($db->tagsList() as $tag) { ?>
+			<div 
+				class			="tagElement" 
+				style			="background-color: <?php print $tag['color'];?>;"
+				title			="<?php print $tag['comment']?>" 
+				data-ID		    ="<?php print $tag['ID'];?>"
+				data-name		="<?php print $tag['name'];?>"
+				data-justifies	="<?php print $tag['justifies'];?>"
+				data-color		="<?php print $tag['color'];?>"
+				data-showTag	="true"
+				onclick			="tagFilterToggle(this)"
+			>
+				<?php print ($tag['justifies'] 
+						? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
+						: '<i class="fa fa-fw fa-question" title="Dieses Tag modifiziert den Erklärt-Status nicht."></i>');?>
+				<?php print $tag['name'];?>
+				
+				<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">
+					<i class="fa fa-eye" aria-hidden="true"></i>
+				</div>
+				<div  onclick	="tagOpenEditor(this);"
+					  title		="Bearbeiten"
+					  class		="tagOnTheRight"
+				>
+					<i class="fa fa-pencil" aria-hidden="true"></i> 
+				</div>
+			</div>
+		<?php } ?>
 	</div>
 
 	<div class="elementEditor tagEditor" style="display: none">
@@ -250,7 +265,7 @@ try {
 	</div>
 
 	<?php 
-		$db->printData();
+		$db->printData('records');
 	?>
 </body>
 </html>
