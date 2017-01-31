@@ -87,14 +87,15 @@ function tagFilterShow(showWhat) {
 		//make them show up one after another
 		for (var i = 0; i < selected.length; i++) {
 			var tagId = $(selected[i]).attr('data-ID');
-			rows.filter('[data-hasTagId='+tagId+']').show();
+			//the ~= selector searches for whole words in the attr's value.
+			rows.filter('[data-hasTags~='+tagId+']').show();
 		}
 	}
 	else if ('all' === showWhat) {
 		rows.show();
 	}
 	else if ('untagged' === showWhat) {
-		rows.filter(':not([data-hasTagId])').show()
+		rows.filter(':not([data-hasTags])').show()
 	}
 	else if ('none' === showWhat) {
 		//nothing. just the header from above.

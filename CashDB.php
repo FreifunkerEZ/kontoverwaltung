@@ -319,15 +319,16 @@ class CashDB extends CashDBInit {
 			$buchungTags			= $this->getTagsForBuchung($buchung['ID']);
 			$buchung['tags']		= implode(',',$buchungTags);
 			
+			#set table-row attributes
 			print "<tr ";
 			foreach ($data as $columnName) {
 				printf("data-$columnName='%s' ", $buchung[$columnName]);
 			}
-			foreach ($buchungTags as $tagId) {
-				printf("data-hasTagId='%s' ", $tagId);
-			}
+			if (!empty($buchungTags))
+				printf("data-hasTags='%s' ", implode(' ', $buchungTags));
 			print " >";
 			
+			#print values
 			foreach ($colNames as $columnName) {
 				print "<td> $buchung[$columnName] </td>\n";
 			}
