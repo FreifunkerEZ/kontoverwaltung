@@ -80,6 +80,63 @@ function routeAction($action, $db) {
 	}
 }
 
+function printTagBox($tag) { 
+	?>
+	<div 
+		class			="tagElement" 
+		style			="background-color: <?php print $tag['color'];?>;"
+		title			="<?php print $tag['comment']?>" 
+		data-ID		    ="<?php print $tag['ID'];?>"
+		data-name		="<?php print $tag['name'];?>"
+		data-justifies	="<?php print $tag['justifies'];?>"
+		data-color		="<?php print $tag['color'];?>"
+		data-showTag	="true"
+		onclick			="tagFilterToggle(this)"
+	>
+		<?php print ($tag['justifies'] 
+				? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
+				: '<i class="fa fa-fw fa-question" title="Dieses Tag modifiziert den Erklärt-Status nicht."></i>');?>
+		<?php print $tag['name'];?>
+
+		<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">
+			<i class="fa fa-eye" aria-hidden="true"></i>
+		</div>
+		<div  onclick	="tagOpenEditor(this);"
+			  title		="Bearbeiten"
+			  class		="tagOnTheRight"
+		>
+			<i class="fa fa-pencil" aria-hidden="true"></i> 
+		</div>
+	</div>
+	<?php 
+}
+
+function printRuleBox($rule, $db) {
+	$allTags = $db->ruleGetTags($rule['ID']);
+?>
+	<div 
+		class			="ruleElement" 
+		title			="<?php print $rule['comment']?>" 
+		data-ID		    ="<?php print $rule['ID'];?>"
+		data-name		="<?php print $rule['name'];?>"
+		data-filter		="<?php print $rule['filter'];?>"
+		data-luxus		="<?php print $rule['luxus'];?>"
+		data-recurrence	="<?php print $rule['recurrence'];?>"
+		data-tagHas		="<?php print json_encode($allTags['has']);?>"
+		data-tagCanHave	="<?php print json_encode($allTags['canHave']);?>"
+		onclick			="ruleOpenEditor(this);"
+	>
+		<?php print $rule['name'];?>
+		<br>
+		<i class="fa fa-glass" aria-hidden="true">		<?php print $rule['luxus'];?></i>
+		<i class="fa fa-refresh" aria-hidden="true">	<?php print $rule['recurrence'];?></i>
+		<br>
+		<?php 
+			print implode(', ', $allTags['has']);
+		?>
+	</div>
+<?php	
+}
 
 
 
@@ -126,41 +183,30 @@ try {
 	<div class="elementBrowser tagBrowser">
 		<h2>Buchungen Filtern mit Tags:</h2>
 		
-		<button onclick="tagNewOpen();">New Tag</button>
-		<button onclick="tagFilterShow('untagged');" 
-				title="Alle Ohne Tags anzeigen"
-		>Show Untagged</button>
-		<button onclick="tagFilterShow('all');">Show All</button>
-		<button onclick="tagFilterShow('filtered');">Show Filtered</button>
+		<button onclick="tagNewOpen();">				New Tag			</button>
+		<button onclick="tagFilterShow('untagged');">	Show Untagged	</button>
+		<button onclick="tagFilterShowAll(this);">		Show All		</button>
+		<button onclick="tagFilterShowNone(this);">		Show None		</button>
+		<button onclick="tagFilterShow('filtered');">	Show Filtered	</button>
 		
-		<?php foreach ($db->tagsList() as $tag) { ?>
-			<div 
-				class			="tagElement" 
-				style			="background-color: <?php print $tag['color'];?>;"
-				title			="<?php print $tag['comment']?>" 
-				data-ID		    ="<?php print $tag['ID'];?>"
-				data-name		="<?php print $tag['name'];?>"
-				data-justifies	="<?php print $tag['justifies'];?>"
-				data-color		="<?php print $tag['color'];?>"
-				data-showTag	="true"
-				onclick			="tagFilterToggle(this)"
-			>
-				<?php print ($tag['justifies'] 
-						? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
-						: '<i class="fa fa-fw fa-question" title="Dieses Tag modifiziert den Erklärt-Status nicht."></i>');?>
-				<?php print $tag['name'];?>
-				
-				<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">
-					<i class="fa fa-eye" aria-hidden="true"></i>
-				</div>
-				<div  onclick	="tagOpenEditor(this);"
-					  title		="Bearbeiten"
-					  class		="tagOnTheRight"
-				>
-					<i class="fa fa-pencil" aria-hidden="true"></i> 
-				</div>
-			</div>
-		<?php } ?>
+		<table class="elementGrid">
+			<tr>
+				<td>
+					<?php 
+					$tags = $db->tagsList();;
+					$displayColumnCount = 5; #how wide should the tag-browser be?
+					$tagsPerColumn = ceil(count($tags) / $displayColumnCount);
+					$count = 0;
+					foreach ($tags as $tag) { 
+						printTagBox($tag);
+						$count++;
+						if ($count % $tagsPerColumn === 0)
+							print "</td><td>"; #start new column.
+					} 
+					?>
+				</td>
+			</tr>
+		</table>
 	</div>
 
 	<div class="elementEditor tagEditor" style="display: none">
@@ -175,36 +221,26 @@ try {
 	</div>
 
 	<div class="elementBrowser">
-		<div>
-			<h2>Available Rules:</h2>
-			<button onclick="ruleNewOpen(this);">New Rule</button>
+		<h2>Available Rules:</h2>
+		<button onclick="ruleNewOpen(this);">New Rule</button>
+		<table class="elementGrid">
+			<tr>
+				<td>
 			<?php 
-				foreach ($db->rulesList() as $rule) { 
-				$allTags = $db->ruleGetTags($rule['ID']);
+				$rules = $db->rulesList();
+				$displayColumnCount = 5; #how wide should the rule-browser be?
+				$tagsPerColumn = ceil(count($rules) / $displayColumnCount);
+				$count = 0;
+				foreach ($rules as $rule) { 
+					printRuleBox($rule, $db);
+					$count++;
+					if ($count % $tagsPerColumn === 0)
+						print "</td><td>"; #start new column.
+				} 
 			?>
-				<div 
-					class			="ruleElement" 
-					title			="<?php print $rule['comment']?>" 
-					data-ID		    ="<?php print $rule['ID'];?>"
-					data-name		="<?php print $rule['name'];?>"
-					data-filter		="<?php print $rule['filter'];?>"
-					data-luxus		="<?php print $rule['luxus'];?>"
-					data-recurrence	="<?php print $rule['recurrence'];?>"
-					data-tagHas		="<?php print json_encode($allTags['has']);?>"
-					data-tagCanHave	="<?php print json_encode($allTags['canHave']);?>"
-					onclick			="ruleOpenEditor(this);"
-				>
-					<?php print $rule['name'];?>
-					<br>
-					<i class="fa fa-glass" aria-hidden="true">		<?php print $rule['luxus'];?></i>
-					<i class="fa fa-refresh" aria-hidden="true">	<?php print $rule['recurrence'];?></i>
-					<br>
-					<?php 
-						print implode(', ', $allTags['has']);
-					?>
-				</div>
-			<?php } ?>
-		</div>
+				</td>
+			</tr>
+		</table>
 	</div>
 	
 	<div class="elementEditor ruleEditor" style="display: none">
@@ -246,7 +282,7 @@ try {
 		
 		
 		<button onclick="$(this).parent().hide();">Close</button>
-		<button onclick="ruleSave(this);">Save</button>
+		<button onclick="ruleSave(this);">Save & Apply</button>
 		<button onclick="ruleDelete(this);">Löschen</button>
 		<button onclick="ruleApply(this);">Anwenden</button>
 	</div>

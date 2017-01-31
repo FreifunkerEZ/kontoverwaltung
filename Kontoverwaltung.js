@@ -96,13 +96,32 @@ function tagFilterShow(showWhat) {
 	else if ('untagged' === showWhat) {
 		rows.filter(':not([data-hasTagId])').show()
 	}
+	else if ('none' === showWhat) {
+		//nothing. just the header from above.
+	}
 	else {
 		alert("unknown filtermethod " + showWhat);
 	}
+}
 
+function tagFilterShowAll(button) {
+	var tagDiv = $(button).parent();
+	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'true');
+	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
+			.removeClass('fa-eye-slash')
+			.addClass('fa-eye')
+	;
+	tagFilterShow('all');
+}
 
-
-		
+function tagFilterShowNone(button) {
+	var tagDiv = $(button).parent();
+	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'false');
+	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
+			.removeClass('fa-eye')
+			.addClass('fa-eye-slash')
+	;
+	tagFilterShow('none');
 }
 
 function ruleOpenEditor(ruleDiv) {
@@ -241,7 +260,7 @@ function ruleSave(button){
 	//console.log(params, JSON.stringify(params));
 	jQuery.post('?action=ruleSave',
 		{params : JSON.stringify(params)},
-		function (data) {console.log(data);location.reload();}
+		function (data) {console.log(data);ruleApply(button);}
 	)
 		.fail(function(data){alert('save failed.');console.log(data);})
 	;
