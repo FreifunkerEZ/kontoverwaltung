@@ -56,6 +56,8 @@ function tagFilterShow(showWhat) {
 		alert("unknown filtermethod " + showWhat);
 	}
 	
+	filterDate();
+	filterLuxus();
 	statsSumUpdate();
 }
 /**
@@ -65,21 +67,41 @@ function tagFilterShow(showWhat) {
  * @returns {undefined}
  */
 function filterDate() {
-	//reset view by restoring previous filter
-	tagFilterShow();
-	
 	var date = $('[name=filterDate]').val();
+	
+	if (!date) //no date, no work
+		return;
+	
 	var rows = $('table.records').find('tr:visible');
 	for (var i=0; i < rows.length; i++) {
 		var row = $(rows[i]);
 		
 		if (!row.attr('data-BuchungstagSortable'))
-			continue; //must be header
+			continue; //no attr? probably a header
 		
 		if ( !row.attr('data-BuchungstagSortable').match('^'+date))
 			row.hide();
 	}
-	statsSumUpdate();
+}
+/**
+ * applies the content of the date-filter-box as regex against 
+ * BuchungstagSortable
+ * 
+ * @returns {undefined}
+ */
+function filterLuxus() {
+	//plus turns the thing into a number
+	var luxus = +$('[name=filterLuxus]').val();
+	
+	if ('' === luxus) //no value, no work
+		return;
+	
+	var rows = $('table.records').find('tr:visible[data-luxus]');
+	for (var i=0; i < rows.length; i++) {
+		var row = $(rows[i]);
+		if ( +row.attr('data-luxus') < luxus)
+			row.hide();
+	}
 }
 
 function tagFilterShowAll(button) {

@@ -308,10 +308,15 @@ try {
 
 	<div class="elementBrowser">
 		<h2>Stats</h2>
-		Sichtbare Buchungen nach Datum filtern (YYYY-MM-DD): 
-		<input name="filterDate" value="2016">
-		<button onclick="filterDate();">GO</button>
+		Buchungen nach Datum filtern (YYYY-MM-DD): 
+		<input name="filterDate" value="2016" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<button onclick="tagFilterShow();">GO</button>
 		<br>
+		Luxus (0..300): 
+		<input name="filterLuxus" value="0" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<button onclick="tagFilterShow();">GO</button>
+		<br>
+		
 		
 		Summe der angezeigten Buchungen: <span class="statsSum">So viel.</span>
 	</div>

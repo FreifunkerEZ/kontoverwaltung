@@ -303,6 +303,7 @@ class CashDB extends CashDBInit {
 			'importdate',
 			'BuchungstagSortable',
 			'rawCSV',
+			'luxus',
 			'Betrag',
 		);
 		
@@ -612,23 +613,23 @@ class CashDB extends CashDBInit {
 		$sqlGetNewVal = "SELECT $name FROM rules WHERE ID=$ruleID";
 		$newVal = $this->toSingleValue($this->runQuery($sqlGetNewVal));
 		
-		if ($newVal == '')
+		if ('' === $newVal || NULL === $newVal)
 			return; #no value, no copy
 		
 		$sqlGetCurrentVal = "SELECT $name FROM buchungen WHERE ID=$buchungID";
 		$currentVal = $this->toSingleValue($this->runQuery($sqlGetCurrentVal));
 		
-		if ($currentVal == $newVal)
+		if ($currentVal === $newVal)
 			return; #both the same? no work
 		
-		if ($currentVal == '') { #no old value? set.
+		if ($currentVal === '' || NULL === $currentVal) { #no old value? set.
 			$sqlSetVal = "UPDATE `buchungen` SET `$name`=$newVal WHERE `ID`=$buchungID;";
 			$this->runQuery($sqlSetVal);
 			return; #work done
 		}
 		
 		#still here? last thing left: old value != new value. corruption
-		throw new Exception ("Cannot apply rule $ruleID's $name to buchung $buchungID because buchung already has $name of $currentVal set and rule requires $newVal");
+		throw new Exception ("Cannot apply rule $ruleID's $name to buchung $buchungID because buchung already has $name of '$currentVal' set and rule requires '$newVal'");
 		#TODO this corruption-exception probably going to fly in my face rather soon. 
 		#no idea how to handle that for now. 
 		#i think it requires some sort of manual resolving. 
