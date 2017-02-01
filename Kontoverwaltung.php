@@ -315,11 +315,18 @@ try {
 		Buchungen nach Datum filtern (YYYY-MM-DD): 
 		<input name="filterDate" value="2016" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
 		<br>
+		
 		Luxusfilter
 		<div style="width:310px; height: 10px;margin: 20px;">
 			<input type="hidden" class="luxus-slider" value="300" />
 			
 		</div>
+		<br>
+		
+		Volltextsuche
+		<input name="filterFullText" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<br>
+		
 		<button onclick="tagFilterShow();">Filter Anwenden</button>
 		<br>
 		

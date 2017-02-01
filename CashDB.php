@@ -43,7 +43,6 @@ class CashDB extends CashDBInit {
 	}
 	
 	private function openDB($path) {
-		#TODO create backup copy once per day
 		if (!touch($path) )
 			throw new Exception ("cannot touch file");
 		
@@ -69,7 +68,7 @@ class CashDB extends CashDBInit {
 		#get content right into arrays. breaks at least one record that has a LineFeed in the VWZ.
 		#$csvFile = file($_FILES['csvfile']['tmp_name']);
 		
-		#fetch records again, this time cut into array manually at CR-LF
+		#fetch records, cut into array manually at CR-LF
 		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
 		$csvFile = preg_split('/\r\n/', $csvFile); #that should leave the VWZ with the single LF intact
 		
@@ -274,7 +273,6 @@ class CashDB extends CashDBInit {
 	 */
 	public function printData($class) {
 		$headers = array(
-			'ID',
 			'Buchungstag',
 			'AuftraggeberEmpfaenger',
 			'Buchungstext',
@@ -286,7 +284,6 @@ class CashDB extends CashDBInit {
 			'Tags',
 		);
 		$colNames = array(
-			'ID',
 			'Buchungstag',
 			'AuftraggeberEmpfaenger',
 			'Buchungstext',
@@ -313,10 +310,14 @@ class CashDB extends CashDBInit {
 		print "<table class='$class' data-tagFilter='all'>";
 		
 		print "<tr>";
+		print '<th onclick="buchungToggleSelectionAll(this);" >'
+				. '<i class="fa fa-square-o" aria-hidden="true"></i>'
+				. '</th>'
+		;
 		foreach ($headers as $header) {
 			print("<th>$header</th>");
 		}
-		print "</tr>";
+		print "</tr>\n";
 		
 		while ($buchung = $ret->fetchArray(SQLITE3_ASSOC)) {
 			$this->collapseVWZ($buchung);
@@ -324,7 +325,7 @@ class CashDB extends CashDBInit {
 			$buchung['tags']	= implode(',',$buchungTags);
 			
 			#set table-row attributes
-			print "<tr ";
+			print "<tr title='ID: {$buchung['ID']}'";
 			foreach ($data as $columnName) {
 				printf("data-$columnName='%s' ", $buchung[$columnName]);
 			}
@@ -332,21 +333,49 @@ class CashDB extends CashDBInit {
 				printf("data-hasTags='%s' ", implode(' ', $buchungTags));
 			print " >";
 			
+			print '<td onclick="buchungToggleSelection(this);">'
+					. '<i class="fa fa-square-o rowSelector" aria-hidden="true"></i>'
+					. '</td>'
+			;
 			#print values
 			foreach ($colNames as $columnName) {
-				if ('comment' == $columnName){
-					#needs to go into one line because PRE formatting would cause 
-					# an endless amount of empty lines on the canvas
-					?>
-					<td data-state="read"><i class='fa fa-pencil' onclick="editComment(this);" ></i><span class="commentContent"><?php print $buchung[$columnName] ?></span></td>
-					<?php
+				switch ($columnName) {
+					case 'comment':
+						#needs to go into one line because PRE formatting would cause 
+						# an endless amount of empty lines on the canvas
+						?>
+						<td data-state="read"><i class='fa fa-pencil' onclick="editComment(this);" ></i><span class="commentContent"><?php print $buchung[$columnName] ?></span></td>
+						<?php
+						break;
+					case 'Betrag':
+						$class = $this->classifyBetrag($buchung[$columnName]);
+						print "<td class='$class'>$buchung[$columnName]</td>\n";
+						break;
+
+					default:
+						print "<td>$buchung[$columnName]</td>\n";
+						break;
 				}
-				else 
-					print "<td>$buchung[$columnName]</td>\n";
 			}
 			print "</tr>";
 		}
 		print "</table>";
+	}
+	
+	private function classifyBetrag($betrag) {
+		$ranges = array(
+			#v-- is betrag bigger than
+						#v-- assign this class
+			'0'		=> 'Income',
+			'-50'	=> 'Mild',
+			'-100'	=> 'Advanced',
+			'-501'	=> 'Alarming',
+			'-99999'=> 'Crazy',
+		);
+		foreach ($ranges as $number => $class) {
+			if ($betrag > $number)
+				return 'betrag'.$class;
+		}
 	}
 	/**
 	 * gets you all the tagIDs associated with the buchungID.

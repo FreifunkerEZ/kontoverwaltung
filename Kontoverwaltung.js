@@ -72,6 +72,26 @@ function editComment(elIcon) {
 	icon.toggleClass('fa-pencil fa-check');
 }
 
+function buchungToggleSelection(td) {
+	$(td).find('i').toggleClass('fa-square-o fa-check-square-o');
+}
+function buchungToggleSelectionAll(th) {
+	var icon = $(th).find('i');
+	icon.toggleClass('fa-square-o fa-check-square-o');
+	
+	if (icon.hasClass('fa-check-square-o')) //everything should be selected.
+		$('table.records td i.rowselector')
+			.removeClass('fa-square-o')
+			.addClass('fa-check-square-o')
+		;
+	else //nothing should be selected
+		$('table.records td i.rowselector')
+			.removeClass('fa-check-square-o')
+			.addClass('fa-square-o')
+		;
+		
+}
+
 function setLoadingIndicator(diff) {
 	var indi  = $('.loadingIndicator');
 	var state = indi.attr('data-operationsInProgress');

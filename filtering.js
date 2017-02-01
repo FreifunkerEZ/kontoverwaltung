@@ -58,6 +58,7 @@ function tagFilterShow(showWhat) {
 	
 	filterDate();
 	filterLuxus();
+	filterFullText();
 	statsSumUpdate();
 }
 /**
@@ -72,12 +73,9 @@ function filterDate() {
 	if (!date) //no date, no work
 		return;
 	
-	var rows = $('table.records').find('tr:visible');
+	var rows = $('table.records').find('tr:visible[data-luxus]');
 	for (var i=0; i < rows.length; i++) {
 		var row = $(rows[i]);
-		
-		if (!row.attr('data-BuchungstagSortable'))
-			continue; //no attr? probably a header
 		
 		if ( !row.attr('data-BuchungstagSortable').match('^'+date))
 			row.hide();
@@ -104,6 +102,22 @@ function filterLuxus() {
 		)
 			row.hide();
 	}
+}
+
+function filterFullText() {
+	var filter = $('input[name=filterFullText]').val();
+	if (!filter)
+		return;
+	
+	var rows = $('table.records').find('tr:visible[data-luxus]');
+	for (var i=0; i < rows.length; i++) {
+		var rawData = $(rows[i]).attr('data-rawCSV');
+		var regex = RegExp(filter, 'i');
+		if (! rawData.match(regex))
+			$(rows[i]).hide();
+	}
+	
+		
 }
 
 function tagFilterShowAll(button) {

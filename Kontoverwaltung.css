@@ -8,6 +8,26 @@
 	color:red;
 }
 
+h2 {
+	font-size: 1.3em;
+	margin: 5px 0 5px 0;
+}
+.betragIncome {
+	background-color: lightblue;
+}
+.betragMild {
+	background-color: lightgreen;
+}
+.betragAdvanced {
+	background-color: yellow;
+}
+.betragAlarming {
+	background-color: orange;
+}
+.betragCrazy {
+	background-color: red;
+}
+
 .loadingIndicator {
 	display:none;
 	position: fixed;
