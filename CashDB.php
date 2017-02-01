@@ -309,7 +309,7 @@ class CashDB extends CashDBInit {
 		$sql = "SELECT * FROM buchungen";
 		$ret = $this->runQuery($sql);
 		
-		print "<table class='$class'>";
+		print "<table class='$class' data-tagFilter='all'>";
 		
 		print "<tr>";
 		foreach ($headers as $header) {
@@ -319,8 +319,8 @@ class CashDB extends CashDBInit {
 		
 		while ($buchung = $ret->fetchArray(SQLITE3_ASSOC)) {
 			$this->collapseVWZ($buchung);
-			$buchungTags			= $this->getTagsForBuchung($buchung['ID']);
-			$buchung['tags']		= implode(',',$buchungTags);
+			$buchungTags		= $this->getTagsForBuchung($buchung['ID']);
+			$buchung['tags']	= implode(',',$buchungTags);
 			
 			#set table-row attributes
 			print "<tr ";
@@ -341,7 +341,7 @@ class CashDB extends CashDBInit {
 					<?php
 				}
 				else 
-					print "<td> $buchung[$columnName] </td>\n";
+					print "<td>$buchung[$columnName]</td>\n";
 			}
 			print "</tr>";
 		}

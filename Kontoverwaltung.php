@@ -175,6 +175,10 @@ try {
 		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 		<script src="https://use.fontawesome.com/de9a1cbb80.js"></script>
 		<script src="Kontoverwaltung.js"></script>
+		<script src="filtering.js"></script>
+		<script src="tagStuff.js"></script>
+		<script src="ruleStuff.js"></script>
+		<script src="addRemoveBox.js"></script>
 		<script type="text/javascript">
 			var tagsBase64 = "<?php print base64_encode(json_encode($db->tagsList()));?>";
 			var tagsJSON = atob(tagsBase64);
@@ -189,6 +193,12 @@ try {
 		 title="Speichert gerade"
 		 data-operationsInProgress="0"
 	></div>
+	
+	
+	<button onclick="$('.ruleBrowser').toggle()">View Rules</button>
+	<button onclick="$('.uploadForm').toggle()">Upload Data</button>
+	
+	
 	<div class="elementBrowser tagBrowser">
 		<h2>Buchungen Filtern mit Tags:</h2>
 		
@@ -229,7 +239,7 @@ try {
 		<button onclick="tagDelete(this);">Delete</button>
 	</div>
 
-	<div class="elementBrowser">
+	<div class="elementBrowser ruleBrowser" style="display:none;">
 		<h2>Available Rules:</h2>
 		<button onclick="ruleNewOpen(this);">New Rule</button>
 		<table class="elementGrid">
@@ -298,6 +308,11 @@ try {
 
 	<div class="elementBrowser">
 		<h2>Stats</h2>
+		Sichtbare Buchungen nach Datum filtern (YYYY-MM-DD): 
+		<input name="filterDate" value="2016">
+		<button onclick="filterDate();">GO</button>
+		<br>
+		
 		Summe der angezeigten Buchungen: <span class="statsSum">So viel.</span>
 	</div>
 

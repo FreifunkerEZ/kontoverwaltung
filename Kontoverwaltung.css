@@ -19,8 +19,10 @@
 table {
 	border-collapse: collapse;
 }
-td {
+td,th {
 	vertical-align: top;
+	padding-left: 5px;
+	padding-right:  5px;
 }
 table.records,.records th,.records td {
 	border: 1px solid black;
@@ -90,8 +92,8 @@ table.records {
 		float:left;
 }
 
-
 .uploadForm {
+	display: none;
 	border:1px solid black;
 	margin: 20px;
 	padding: 5px;

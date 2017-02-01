@@ -147,8 +147,6 @@ CREATE TABLE `tags` (
 	'comment'	TEXT,
 		--some free text that explains something about what this tag means
 		--so we can later still understand the intention of it.
-	'justifies' INTEGER,
-		--applying this tag justifies the buchung
 	'color'		TEXT
 		--gives a nice touch to the label and all its buchungen
 		--format: #121212 to be compatible with the colorpicker
