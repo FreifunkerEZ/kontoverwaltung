@@ -64,6 +64,13 @@ class CashDBInit extends CashDBbasics {
 		 * gehalt has not come?
 		 * versicherung hat nicht abgebucht?
 		 * i think not. maybe later?
+		 * 
+	luxus 
+		 * is currently set through rule.
+		 * tags cannot add luxus.
+		 * what if i add a tag manually? 
+		 * i will not get any luxus value applied that way.
+		 * and currently there is no way to manually set it.
 		*/
 		
 $sql =<<<EOF

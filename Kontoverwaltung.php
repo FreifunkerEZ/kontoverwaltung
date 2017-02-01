@@ -174,6 +174,10 @@ try {
 		
 		<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
 		<script src="https://use.fontawesome.com/de9a1cbb80.js"></script>
+		
+		<link rel="stylesheet" href="jRange/jquery.range.css">
+		<script src="jRange/jquery.range.js"></script>
+		
 		<script src="Kontoverwaltung.js"></script>
 		<script src="filtering.js"></script>
 		<script src="tagStuff.js"></script>
@@ -195,8 +199,8 @@ try {
 	></div>
 	
 	
-	<button onclick="$('.ruleBrowser').toggle()">View Rules</button>
-	<button onclick="$('.uploadForm').toggle()">Upload Data</button>
+	<button onclick="toggleElements('.ruleBrowser');">View Rules</button>
+	<button onclick="toggleElements('.uploadForm');">Upload Data</button>
 	
 	
 	<div class="elementBrowser tagBrowser">
@@ -310,11 +314,13 @@ try {
 		<h2>Stats</h2>
 		Buchungen nach Datum filtern (YYYY-MM-DD): 
 		<input name="filterDate" value="2016" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
-		<button onclick="tagFilterShow();">GO</button>
 		<br>
-		Luxus (0..300): 
-		<input name="filterLuxus" value="0" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
-		<button onclick="tagFilterShow();">GO</button>
+		Luxusfilter
+		<div style="width:310px; height: 10px;margin: 20px;">
+			<input type="hidden" class="luxus-slider" value="300" />
+			
+		</div>
+		<button onclick="tagFilterShow();">Filter Anwenden</button>
 		<br>
 		
 		

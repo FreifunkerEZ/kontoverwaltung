@@ -90,16 +90,18 @@ function filterDate() {
  * @returns {undefined}
  */
 function filterLuxus() {
-	//plus turns the thing into a number
-	var luxus = +$('[name=filterLuxus]').val();
+	var luxus = $('.luxus-slider').val().split(',');
 	
-	if ('' === luxus) //no value, no work
+	if (luxus.length != 2) //no value, no work
 		return;
 	
 	var rows = $('table.records').find('tr:visible[data-luxus]');
 	for (var i=0; i < rows.length; i++) {
 		var row = $(rows[i]);
-		if ( +row.attr('data-luxus') < luxus)
+		//plus turns the results into numbers
+		if (	   +row.attr('data-luxus') < luxus[0] 
+				|| +row.attr('data-luxus') > luxus[1] 
+		)
 			row.hide();
 	}
 }
