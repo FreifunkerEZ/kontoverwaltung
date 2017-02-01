@@ -56,6 +56,9 @@ function routeAction($action, $db) {
 		case 'upload':
 			$db->processUpload();
 			break;
+		case 'editComment':
+			$db->editComment();
+			break;
 		case 'tagSave':
 			$db->tagSave();
 			break;
@@ -101,7 +104,7 @@ function printTagBox($tag) {
 		<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">
 			<i class="fa fa-eye" aria-hidden="true"></i>
 		</div>
-		<div  onclick	="tagOpenEditor(this);"
+		<div  onclick	="arguments[0].stopPropagation(); tagOpenEditor(this);"
 			  title		="Bearbeiten"
 			  class		="tagOnTheRight"
 		>
@@ -149,12 +152,14 @@ try {
 		throw new Exception( $db->lastErrorMsg());
 
 	if (isset($_GET['action'])) {
-		ob_end_clean();
+		ob_clean();
 		routeAction($_GET['action'], $db);
 		exit;
 	}
 	
 } catch (Exception $e) {
+	http_response_code(500);
+	ob_end_flush();
 	print "<h1>EGGSEPTSCHUN!</h1>";
 	e($e->getMessage());
 	e($e->getTraceAsString());
@@ -180,6 +185,10 @@ try {
 
 <body>
 	<?php ob_end_flush();?>
+	<div class="loadingIndicator fa fa-cog fa-spin fa-3x fa-fw"
+		 title="Speichert gerade"
+		 data-operationsInProgress="0"
+	></div>
 	<div class="elementBrowser tagBrowser">
 		<h2>Buchungen Filtern mit Tags:</h2>
 		
@@ -277,7 +286,6 @@ try {
 				<select size=10>
 				</select>
 			</div>
-
 		</div>
 		
 		
@@ -288,6 +296,10 @@ try {
 	</div>
 
 
+	<div class="elementBrowser">
+		<h2>Stats</h2>
+		Summe der angezeigten Buchungen: <span class="statsSum">So viel.</span>
+	</div>
 
 	<div class="uploadForm">
 		Neue Daten hochladen in CSV format:

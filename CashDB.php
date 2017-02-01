@@ -279,6 +279,7 @@ class CashDB extends CashDBInit {
 			'AuftraggeberEmpfaenger',
 			'Buchungstext',
 			'Verwendungszweck',
+			'Kommentar',
 			'Betrag',
 			'Wdh',
 			'Luxus',
@@ -290,6 +291,7 @@ class CashDB extends CashDBInit {
 			'AuftraggeberEmpfaenger',
 			'Buchungstext',
 			'Verwendungszweck',
+			'comment',
 			'Betrag',
 			'recurrence',
 			'luxus',
@@ -301,6 +303,7 @@ class CashDB extends CashDBInit {
 			'importdate',
 			'BuchungstagSortable',
 			'rawCSV',
+			'Betrag',
 		);
 		
 		$sql = "SELECT * FROM buchungen";
@@ -330,7 +333,15 @@ class CashDB extends CashDBInit {
 			
 			#print values
 			foreach ($colNames as $columnName) {
-				print "<td> $buchung[$columnName] </td>\n";
+				if ('comment' == $columnName){
+					#needs to go into one line because PRE formatting would cause 
+					# an endless amount of empty lines on the canvas
+					?>
+					<td data-state="read"><i class='fa fa-pencil' onclick="editComment(this);" ></i><span class="commentContent"><?php print $buchung[$columnName] ?></span></td>
+					<?php
+				}
+				else 
+					print "<td> $buchung[$columnName] </td>\n";
 			}
 			print "</tr>";
 		}
@@ -363,42 +374,17 @@ class CashDB extends CashDBInit {
 		$row['Verwendungszweck'] = implode('<br>', $bucket);
 	}
 	
-	private function concatenateFields($record, $from, $to) {
-		$output = array();
-		$bucket = array();
-		foreach ($record as $index => $field) {
-			if ($index < $from || $index > $to) {	#if outside of range
-				$output[] = $field;					#copy field and done
-				continue;
-			}
-			
-			if (trim($field))	#if not empty
-				$bucket[] = $field; #put field into bucket
-			
-			if ($to == $index) #on the last field insert bucket
-				$output[] = implode("\n", $bucket);
-		}
-		return $output;
-	}
 	
-	
-	private function catVWZ($record, $isHeader = false) {
-		#VWZ is index 5-18
-		$output = array();
-		$verwendungszweck = array();
-		foreach ($record as $index => $field) {
-			if ($index < 5 || $index > 18) { #if not VZW
-				$output[] = $field;          #copy field and done
-				continue;
-			}
-			
-			if (trim($field))	#if not empty
-				$verwendungszweck[] = $field; #put field into bucket
-			
-			if (18 == $index) #on the last VWZ either insert bucket or label
-				$output[] = ($isHeader ? 'Verwendungszweck' : implode("\n", $verwendungszweck));
-		}
-		return $output;
+	public function editComment() {
+		if (empty($_GET['ID']))
+			throw new Exception ('No ID, no comment');
+		if (empty($_GET['comment']))
+			return;
+		$sql = sprintf("UPDATE buchungen SET comment='%s' WHERE ID='%s'"
+			,$_GET['comment']
+			,$_GET['ID']
+		);
+		$this->runQuery($sql);
 	}
 	
 	/**
