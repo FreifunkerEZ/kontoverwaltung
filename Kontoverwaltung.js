@@ -27,15 +27,9 @@ function deleteSomething(button,action) {
 	;
 }
 
-function statsSumUpdate() {
-	var buchungen = $('table.records tr:visible');
-	var sum = 0;
-	for (var i=0; i < buchungen.length; i++) {
-		var value = $(buchungen[i]).attr('data-Betrag');
-		if (!isNaN(value))
-			sum += parseFloat(value);
-	}
-	$('.statsSum').text(sum.toFixed(2));
+
+function is_string(thing) {
+	return (typeof thing === 'string' || thing instanceof String);
 }
 
 function editComment(elIcon) {
@@ -117,8 +111,16 @@ function initLuxusSlider() {
 	
 }
 
-
-function getQueryParams() {
+/**
+ * gets you the params from the URL-bar.
+ * 
+ * @param {string} whichParam - OPTIONAL
+ * if given, a single value is returned.
+ * gets you the value if set or undefined if not.
+ * if not given the all params are returned as object.
+ * @returns {string|Object}
+ */
+function getQueryParams(whichParam) {
        var query = window.location.search.substring(1);
        var vars = query.split("&");
 	   var output = {};
@@ -126,7 +128,10 @@ function getQueryParams() {
                var pair = vars[i].split("=");
                output[pair[0]] = pair[1];
        }
-       return output;
+	   if (whichParam)
+		   return output[whichParam];
+	   else
+			return output;
 }
 
 /**
@@ -203,3 +208,4 @@ function toggleElements(selector) {
 
 $(document).ready(initLuxusSlider);
 $(document).ready(toggleElements);
+$(document).ready(tagFilterShow);

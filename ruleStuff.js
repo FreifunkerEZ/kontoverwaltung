@@ -33,7 +33,6 @@ function ruleNewOpen(button) {
 
 function ruleSave(button){
 	var editor  = $(button).parent();
-	var hasTags = '';
 	var params  = {
 		ID:			editor.find('[name=ID]').text(),
 		name:		editor.find('[name=name]').val(),
@@ -46,7 +45,11 @@ function ruleSave(button){
 	//console.log(params, JSON.stringify(params));
 	jQuery.post('?action=ruleSave',
 		{params : JSON.stringify(params)},
-		function (data) {console.log(data);ruleApply(button);}
+		function (data) {
+			console.log(data);
+			var ID = data.match(/newRuleId:'(\d+)'/);
+			ruleApply(button, ID[1]);
+		}
 	)
 		.fail(function(data){alert('save failed.');console.log(data);})
 	;
@@ -58,8 +61,23 @@ function ruleDelete(button) {
 	))
 		deleteSomething(button, 'ruleDelete');
 }
-function ruleApply(button) {
+
+/**
+ * 
+ * @param {type} button
+ * @param {type} ruleID OPTIONAL - 
+ * overrides the ID retrieved from the canvas.
+ * used when a new rule is created (which has no ID at that point) 
+ * and applied right away.
+ * @returns {undefined}
+ */
+function ruleApply(button, givenRuleID) {
 	var ruleID = $(button).parent().find("[name=ID]").text();
+	
+	if (givenRuleID) //override the ruleID from the canvas. 
+	// it will probably say 'NEW' when this is required
+		ruleID = givenRuleID;
+	
 	$.post(
 		'?action=ruleApply',
 		{ruleID : ruleID},

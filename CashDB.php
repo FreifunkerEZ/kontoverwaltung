@@ -307,7 +307,7 @@ class CashDB extends CashDBInit {
 		$sql = "SELECT * FROM buchungen";
 		$ret = $this->runQuery($sql);
 		
-		print "<table class='$class' data-tagFilter='all'>";
+		print "<table class='$class'>";
 		
 		print "<tr>";
 		print '<th onclick="buchungToggleSelectionAll(this);" >'
@@ -325,7 +325,10 @@ class CashDB extends CashDBInit {
 			$buchung['tags']	= implode(',',$buchungTags);
 			
 			#set table-row attributes
-			print "<tr title='ID: {$buchung['ID']}'";
+			print "<tr "
+					. "style='display:none' "
+					. "title='ID: {$buchung['ID']}'"
+			;
 			foreach ($data as $columnName) {
 				printf("data-$columnName='%s' ", $buchung[$columnName]);
 			}
@@ -494,8 +497,10 @@ class CashDB extends CashDBInit {
 			throw new Exception ("no saving without params");
 		
 		$input = json_decode($_POST['params'],'array');
-		if ('NEW' == $input['ID']) 
-			$input['ID'] = $this->ruleCreate();
+		if ('NEW' == $input['ID']) {
+			$input['ID'] = $this->ruleCreate(); #create empty shell
+			print "newRuleId:'{$input['ID']}'"; #set content in next step
+		}
 		
 		if (is_numeric($input['ID']))
 			$this->ruleUpdate($input);

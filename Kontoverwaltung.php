@@ -99,10 +99,13 @@ function printTagBox($tag) {
 		<?php print ($tag['justifies'] 
 				? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
 				: '<i class="fa fa-fw fa-question" title="Dieses Tag modifiziert den Erklärt-Status nicht."></i>');?>
-		<?php print $tag['name'];?>
+		
+		<div class='tagCaption'>
+			<?php print $tag['name'];?>
+		</div>
 
 		<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">
-			<i class="fa fa-eye" aria-hidden="true"></i>
+			<i class="fa fa-eye tagVisible" aria-hidden="true"></i>
 		</div>
 		<div  onclick	="arguments[0].stopPropagation(); tagOpenEditor(this);"
 			  title		="Bearbeiten"
@@ -178,11 +181,12 @@ try {
 		<link rel="stylesheet" href="jRange/jquery.range.css">
 		<script src="jRange/jquery.range.js"></script>
 		
-		<script src="Kontoverwaltung.js"></script>
 		<script src="filtering.js"></script>
+		<script src="stats.js"></script>
 		<script src="tagStuff.js"></script>
 		<script src="ruleStuff.js"></script>
 		<script src="addRemoveBox.js"></script>
+		<script src="Kontoverwaltung.js"></script>
 		<script type="text/javascript">
 			var tagsBase64 = "<?php print base64_encode(json_encode($db->tagsList()));?>";
 			var tagsJSON = atob(tagsBase64);
@@ -304,13 +308,13 @@ try {
 		
 		
 		<button onclick="$(this).parent().hide();">Close</button>
-		<button onclick="ruleSave(this);">Save & Apply</button>
+		<button onclick="ruleSave(this);">Speichern & Anwenden</button>
 		<button onclick="ruleDelete(this);">Löschen</button>
 		<button onclick="ruleApply(this);">Anwenden</button>
 	</div>
 
 
-	<div class="elementBrowser">
+	<div class="stats elementBrowser">
 		<h2>Stats</h2>
 		Buchungen nach Datum filtern (YYYY-MM-DD): 
 		<input name="filterDate" value="2016" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
@@ -331,7 +335,8 @@ try {
 		<br>
 		
 		
-		Summe der angezeigten Buchungen: <span class="statsSum">So viel.</span>
+		Summe der angezeigten Buchungen: <span class="statsSum">viel</span>
+		Anzahl der Buchungen: <span class='statsCountTotal'>viele</span>
 	</div>
 
 	<div class="uploadForm">
@@ -345,6 +350,10 @@ try {
 		</form>
 	</div>
 
+	<div class='buchungEditorTemplate' style="display:hidden">
+		
+	</div>
+	
 	<?php 
 		$db->printData('records');
 	?>

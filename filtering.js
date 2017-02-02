@@ -6,7 +6,7 @@ function tagFilterToggle(tagDiv) {
 		$(tagDiv).attr('data-showTag', 'true');
 	
 	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
-			.toggleClass('fa-eye fa-eye-slash')
+			.toggleClass('fa-eye fa-eye-slash tagHidden tagVisible')
 	;
 	tagFilterShow('filtered');
 }
@@ -23,11 +23,16 @@ function tagFilterToggle(tagDiv) {
  * @returns {undefined}
  */
 function tagFilterShow(showWhat) {
-	if (!showWhat)
-		showWhat = $('table.records').attr('data-tagFilter');
-	else
-		//write down what the current view is.
-		$('table.records').attr('data-tagFilter',showWhat);
+	console.log(showWhat);
+	if (is_string(showWhat)) {
+		//write down what the requested view is.
+		setUrlBarParams('filter', showWhat);
+	}
+	else {//load what the last filter was from URL-bar
+		showWhat = getQueryParams('filter');
+		if (!showWhat) //default to 'all' if that did not work.
+			showWhat = 'all';
+	}
 	
 	var rows = $(document).find('table.records tr');
 	//reset playing field: make everything go away and show headers.
@@ -59,7 +64,8 @@ function tagFilterShow(showWhat) {
 	filterDate();
 	filterLuxus();
 	filterFullText();
-	statsSumUpdate();
+	statsUpdateSum();
+	statsUpdateCount();
 }
 /**
  * applies the content of the date-filter-box as regex against 
@@ -124,8 +130,8 @@ function tagFilterShowAll(button) {
 	var tagDiv = $(button).parent();
 	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'true');
 	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
-			.removeClass('fa-eye-slash')
-			.addClass('fa-eye')
+			.removeClass('fa-eye-slash tagHidden')
+			.addClass('fa-eye tagVisible')
 	;
 	tagFilterShow('all');
 }
@@ -134,8 +140,8 @@ function tagFilterShowNone(button) {
 	var tagDiv = $(button).parent();
 	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'false');
 	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
-			.removeClass('fa-eye')
-			.addClass('fa-eye-slash')
+			.removeClass('fa-eye tagVisible')
+			.addClass('fa-eye-slash tagHidden')
 	;
 	tagFilterShow('none');
 }

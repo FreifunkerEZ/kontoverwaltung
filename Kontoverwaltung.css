@@ -15,7 +15,7 @@ h2 {
 .betragIncome {
 	background-color: lightblue;
 }
-.betragMild {
+.betragMild, .tagVisible {
 	background-color: lightgreen;
 }
 .betragAdvanced {
@@ -24,7 +24,7 @@ h2 {
 .betragAlarming {
 	background-color: orange;
 }
-.betragCrazy {
+.betragCrazy, .tagHidden {
 	background-color: red;
 }
 
@@ -81,10 +81,18 @@ table.records {
 	width: 200px;
 	margin: 5px;
 }
+.tagCaption {
+    display: inline-block;
+    width: 143px;
+    height: 15px;
+    overflow: hidden;
+    white-space: nowrap;
+} 
 .tagOnTheRight {
 	text-align: right;
 	display: inline-block;
 	float:right;
+	width: 16px;
 }
 
 .ruleElement {
