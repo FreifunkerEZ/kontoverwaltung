@@ -23,7 +23,6 @@ function tagFilterToggle(tagDiv) {
  * @returns {undefined}
  */
 function tagFilterShow(showWhat) {
-	console.log(showWhat);
 	if (is_string(showWhat)) {
 		//write down what the requested view is.
 		setUrlBarParams('filter', showWhat);

@@ -27,7 +27,7 @@ function tagSave(button){
 	};
 	jQuery.post('?action=tagSave',
 		{params : JSON.stringify(params)},
-		function (data) {console.log(data);location.reload();}
+		function(data) {console.log(data);location.reload();}
 	)
 		.fail(function(data){alert('save failed.');console.log(data);})
 	;

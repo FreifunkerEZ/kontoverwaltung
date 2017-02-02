@@ -44,10 +44,15 @@ td,th {
 	padding-left: 5px;
 	padding-right:  5px;
 }
-table.records,.records th,.records td {
+table.records
+,table.records th
+,table.records td {
 	border: 1px solid black;
 	white-space: pre;
 	font-family: monospace;
+}
+table.records tr {
+	position: relative;
 }
 table.records {
 	margin: 20px;
@@ -58,8 +63,8 @@ table.records {
 	padding: 5px;
 }
 .elementEditor {
-	min-width: 400px;
-	min-height: 400px;
+	min-width: 200px;
+	min-height: 200px;
 	border-radius: 2px;
 	border: 2px solid black;
 	position: fixed;
@@ -100,6 +105,21 @@ table.records {
 	border: 1px solid red;
 	width: 200px;
 	margin: 5px;
+}
+
+.buchungEditorTemplate {
+	display: none;
+}
+.buchungEditor {
+	border: 1px solid black;
+	box-shadow: 3px 3px 16px 2px rgba(0,0,0,0.39);
+	padding: 15px;
+	position: fixed;
+	top: 50px;
+	left: 50px;
+	min-width: 400px;
+	min-height: 200px;
+	background-color: white;
 }
 
 .arbAddRemoveBoxes {

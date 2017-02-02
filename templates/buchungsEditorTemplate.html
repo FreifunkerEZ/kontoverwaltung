@@ -1,0 +1,47 @@
+<div class='buchungEditorTemplate elementEditor'>
+	<h2>Buchung <span class='ID'>ID </span> editieren</h2>
+	<label>
+		Kommentar: 
+		<input name='comment'>
+	</label>
+	<label>
+		Wiederholung: 
+		<input name='recurrence' type='number'>
+	</label>
+	<label>
+		Luxus: 
+		<input name='luxus'>
+	</label>
+	
+	
+	<div class="arbAddRemoveBoxes">
+	<h3>Tags</h3>
+		<div class="arbHasBox">
+			Ausgewählt<br>
+			<select size=10>
+			</select>
+		</div>
+		<div class="arbControlsBox">
+			<div class="arbControls">
+				<button onclick="arbAddButton(this);">
+					<i class="fa fa-arrow-left" aria-hidden="true"></i>
+					<i class="fa fa-plus" aria-hidden="true"></i>
+				</button>
+				<br><br>
+				<button onclick="arbRemoveButton(this);">
+					<i class="fa fa-times" aria-hidden="true"></i>
+					<i class="fa fa-arrow-right" aria-hidden="true"></i>
+				</button>
+			</div>
+		</div>
+
+		<div class="arbCanHaveBox">
+			Verfügbar<br>
+			<select size=10>
+			</select>
+		</div>
+	</div>
+
+	<button onclick='$(this).parent().remove();'>Close/Cancel</button>
+	<button onclick='buchungEditorSave(this);'>Save</button>
+</div>

@@ -21,7 +21,7 @@ function deleteSomething(button,action) {
 	$.post(
 		'?action='+action,
 		{ID : ID},
-		function (data) {console.log(data);location.reload();}
+		function(data) {console.log(data);location.reload();}
 	)
 	.fail(function(data){alert(action+" failed");console.log(data);})
 	;
@@ -32,59 +32,6 @@ function is_string(thing) {
 	return (typeof thing === 'string' || thing instanceof String);
 }
 
-function editComment(elIcon) {
-	var icon = $(elIcon);
-	var contentSpan = icon.siblings('.commentContent');
-	
-	if (icon.hasClass('fa-pencil')) {
-		var commentContent = contentSpan.text();
-		var inputElement = $('<input type="text">').val(commentContent);
-		contentSpan.html(inputElement);
-		inputElement.focus();
-	}
-	else {
-		var commentContent = contentSpan.find('input').val();
-		contentSpan.text(commentContent);
-		setLoadingIndicator(1);
-		var params = {
-			ID:		icon.closest('tr').attr('data-ID'),
-			action:	'editComment',
-			comment:commentContent
-		};
-		$.get(	'',
-				params,
-				function(){
-					setLoadingIndicator(-1);
-				}
-		)
-		.fail(	function(data){
-					console.log(data);
-					alert('Saving comment failed :(');
-				}
-		);
-	}
-	icon.toggleClass('fa-pencil fa-check');
-}
-
-function buchungToggleSelection(td) {
-	$(td).find('i').toggleClass('fa-square-o fa-check-square-o');
-}
-function buchungToggleSelectionAll(th) {
-	var icon = $(th).find('i');
-	icon.toggleClass('fa-square-o fa-check-square-o');
-	
-	if (icon.hasClass('fa-check-square-o')) //everything should be selected.
-		$('table.records td i.rowselector')
-			.removeClass('fa-square-o')
-			.addClass('fa-check-square-o')
-		;
-	else //nothing should be selected
-		$('table.records td i.rowselector')
-			.removeClass('fa-check-square-o')
-			.addClass('fa-square-o')
-		;
-		
-}
 
 function setLoadingIndicator(diff) {
 	var indi  = $('.loadingIndicator');

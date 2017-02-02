@@ -314,6 +314,8 @@ class CashDB extends CashDBInit {
 				. '<i class="fa fa-square-o" aria-hidden="true"></i>'
 				. '</th>'
 		;
+		print '<th>Edit</th>'
+		;
 		foreach ($headers as $header) {
 			print("<th>$header</th>");
 		}
@@ -336,29 +338,30 @@ class CashDB extends CashDBInit {
 				printf("data-hasTags='%s' ", implode(' ', $buchungTags));
 			print " >";
 			
+			#insert row-selector-checkbox-TD
 			print '<td onclick="buchungToggleSelection(this);">'
 					. '<i class="fa fa-square-o rowSelector" aria-hidden="true"></i>'
 					. '</td>'
 			;
+			
+			#insert edit-pencil-TD
+			print '<td onclick="buchungEditorOpen(this);">'
+					. '<i class="fa fa-pencil" aria-hidden="true"></i>'
+					. '</td>'
+			;
+			
 			#print values
 			foreach ($colNames as $columnName) {
-				switch ($columnName) {
-					case 'comment':
-						#needs to go into one line because PRE formatting would cause 
-						# an endless amount of empty lines on the canvas
-						?>
-						<td data-state="read"><i class='fa fa-pencil' onclick="editComment(this);" ></i><span class="commentContent"><?php print $buchung[$columnName] ?></span></td>
-						<?php
-						break;
-					case 'Betrag':
-						$class = $this->classifyBetrag($buchung[$columnName]);
-						print "<td class='$class'>$buchung[$columnName]</td>\n";
-						break;
-
-					default:
-						print "<td>$buchung[$columnName]</td>\n";
-						break;
-				}
+				if ('Betrag' == $columnName)
+					$extraClass = $this->classifyBetrag($buchung[$columnName]);
+				else
+					$extraClass = '';
+				
+				printf("<td class='%s %s'>%s</td>\n"
+						,"buchung$columnName"	#so we can find our values easier
+						,$extraClass			#to make something shiny
+						,$buchung[$columnName]	#the acutal text
+				);
 			}
 			print "</tr>";
 		}
@@ -408,18 +411,7 @@ class CashDB extends CashDBInit {
 	}
 	
 	
-	public function editComment() {
-		if (empty($_GET['ID']))
-			throw new Exception ('No ID, no comment');
-		if (empty($_GET['comment']))
-			return;
-		$sql = sprintf("UPDATE buchungen SET comment='%s' WHERE ID='%s'"
-			,$_GET['comment']
-			,$_GET['ID']
-		);
-		$this->runQuery($sql);
-	}
-	
+
 	/**
 	 * gets you tags with all columns.
 	 * 
@@ -691,5 +683,9 @@ class CashDB extends CashDBInit {
 			return true;
 		else
 			return false;
+	}
+	
+	public function buchungEdit() {
+		
 	}
 }

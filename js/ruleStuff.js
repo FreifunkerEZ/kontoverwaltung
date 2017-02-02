@@ -45,7 +45,7 @@ function ruleSave(button){
 	//console.log(params, JSON.stringify(params));
 	jQuery.post('?action=ruleSave',
 		{params : JSON.stringify(params)},
-		function (data) {
+		function(data) {
 			console.log(data);
 			var ID = data.match(/newRuleId:'(\d+)'/);
 			ruleApply(button, ID[1]);
@@ -81,7 +81,7 @@ function ruleApply(button, givenRuleID) {
 	$.post(
 		'?action=ruleApply',
 		{ruleID : ruleID},
-		function (data) {console.log(data);location.reload();}
+		function(data) {console.log(data);location.reload();}
 	)
 	.fail(function(data){alert("Failed to apply rule.");console.log(data);})
 	;
