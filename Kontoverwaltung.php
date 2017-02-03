@@ -43,6 +43,7 @@ try {
 		<link rel="stylesheet" href="jRange/jquery.range.css">
 		<script src="jRange/jquery.range.js"></script>
 		
+		<script src="/js/helper.js"></script>
 		<script src="/js/filtering.js"></script>
 		<script src="/js/stats.js"></script>
 		<script src="/js/buchungStuff.js"></script>

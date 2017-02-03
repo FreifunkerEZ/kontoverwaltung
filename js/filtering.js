@@ -65,6 +65,7 @@ function tagFilterShow(showWhat) {
 	filterFullText();
 	statsUpdateSum();
 	statsUpdateCount();
+	statsUpdateTags();
 }
 /**
  * applies the content of the date-filter-box as regex against 

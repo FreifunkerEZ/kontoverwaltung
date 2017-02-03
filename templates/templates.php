@@ -19,6 +19,12 @@ function printTagBox($tag) {
 		
 		<div class='tagCaption'>
 			<?php print $tag['name'];?>
+			<br>
+			<img src="/gfx/count.gif" alt="count" width="16"/>
+			<span class='tagCount' style='width:1.5em;display:inline-block;'>ct</span>
+			&Sigma;
+			<span class='tagSum'>sum</span>
+			
 		</div>
 
 		<div class="tagOnTheRight" title="Werden Buchungen mit diesem Tag angezeigt?">

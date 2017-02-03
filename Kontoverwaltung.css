@@ -89,7 +89,7 @@ table.records {
 .tagCaption {
     display: inline-block;
     width: 143px;
-    height: 15px;
+    height: 36px;
     overflow: hidden;
     white-space: nowrap;
 } 
