@@ -1,6 +1,12 @@
 <?php
 class CashDBbasics extends SQLite3 {
 
+	protected function scrubInputs($input) {
+		#TODO scrubbing!!!!!
+		$output = $input;
+		return $output;
+	}
+	
 	protected function tableExists($tableName)  {
 		$sql = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='$tableName'";
 		$ret = $this->runQuery($sql);
@@ -21,6 +27,38 @@ class CashDBbasics extends SQLite3 {
 			return $ret;
 		}
 	}
+	
+	/**
+	 * creates an sqlite SET statement.
+	 * builds the fields to set from your input.
+	 * add values outside of the SET (like WHERE ____) later with $stmt->bindValue();
+	 * 
+	 * @param string $sqlFormat an sql instruction.
+	 * must contain a printf-string-placeholder (%s) where the fields to SET go.
+	 * ex: "UPDATE buchungen SET %s WHERE ID=:ID"
+	 * @param hash $inputHash the data which to insert
+	 * @param array $keysToUse OPTIONAL - 
+	 * if given the list of keys which to read from the $inputHash.
+	 * if not given, the whole $inputHash is used.
+	 * @return SQLite3Stmt
+	 */
+	protected function formatSetStatement($sqlFormat, $inputHash, $keysToUse = null) {
+		if ($keysToUse === null)
+			$keysToUse = array_keys($inputHash);
+		
+		$setParts = array();
+		foreach ($keysToUse as $key) {
+			$setParts[] = "$key=:$key";
+		}
+		$sql = sprintf($sqlFormat, implode(', ', $setParts));
+		
+		$stmt = $this->prepare($sql);
+		foreach ($keysToUse as $field) {
+			$stmt->bindValue(":$field", $inputHash[$field]);
+		}
+		return $stmt;
+	}
+
 	
 	/**
 	 * turns an runQuery() return into an array by running 

@@ -67,7 +67,7 @@ function initLuxusSlider() {
  * if not given the all params are returned as object.
  * @returns {string|Object}
  */
-function getQueryParams(whichParam) {
+function getUrlQueryParams(whichParam) {
        var query = window.location.search.substring(1);
        var vars = query.split("&");
 	   var output = {};
@@ -89,10 +89,10 @@ function getQueryParams(whichParam) {
  * supplied, it will be grabbed from window.location. This solution also takes 
  * the url's anchor into consideration.
  * 
- * @param {type} key
- * @param {type} value
- * @param {type} url
- * @returns {String}
+ * @param {string} key the parameter to modify.
+ * @param {string} value OPTIONAL - what to set to. if empty, the key is removed.
+ * @param {string} url OPTIONAL. if not given, window.location.href is used.
+ * @returns {String} the modified url
  */
 function UpdateQueryString(key, value, url) {
     if (!url) url = window.location.href;
@@ -123,13 +123,23 @@ function UpdateQueryString(key, value, url) {
             return url;
     }
 }
+
+/**
+ * sets one key/value of window.location.href.
+ * updates the browser's URL-bar without actually navigating.
+ * 
+ * @param {string} key
+ * @param {string} value OPTIONAL - if left out, the key is removed.
+ * @returns {undefined}
+ */
 function setUrlBarParams(key, value) {
-	var url = UpdateQueryString(key, value, window.location.href);
+	var url = UpdateQueryString(key, value);
 	history.pushState({}, null, url);
 }
 /**
- * will show or hide an element.
+ * will show or hide the Upload and RuleExplorer elements.
  * if the element is visible the selector will be added to the URL-bar.
+ * this gives us page-reload persistence of the settings.
  * 
  * @param {string} OPTIONAL - selector jquery selector like ".class". 
  * if left out, the location.href (URL-bar) is inspected.
@@ -137,22 +147,35 @@ function setUrlBarParams(key, value) {
  * @returns {undefined}
  */
 function toggleElements(selector) {
-	if (typeof selector === 'string' || selector instanceof String) {
+	if (is_string(selector)) {
 		$(selector).toggle();
 		if ($(selector+':visible').length)
 			setUrlBarParams(selector, 'show');
 		else 
 			setUrlBarParams(selector);
 	}
-	else {
-		var queryParams = getQueryParams();
+	else { //selector is not a string - inspect URL for input 
+		var queryParams = getUrlQueryParams();
 		for (var key in queryParams) {
 			if (queryParams[key] == 'show')
 				$(key).show();
 		}
 	}
 }
+/**
+ * the href in the URL-bar might have some parameters set to affect the page.
+ * search for them and enact their intent.
+
+ * @returns {undefined}
+ */
+function handlePersistence() {
+	toggleElements(null);
+	if (getUrlQueryParams('date'))
+		$('input[name=filterDate]').val(getUrlQueryParams('date'));
+	if (getUrlQueryParams('fts'))
+		$('input[name=filterFullText]').val(getUrlQueryParams('fts'));
+}
 
 $(document).ready(initLuxusSlider);
-$(document).ready(toggleElements);
+$(document).ready(handlePersistence);
 $(document).ready(tagFilterShow);

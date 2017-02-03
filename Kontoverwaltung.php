@@ -180,7 +180,7 @@ try {
 	<div class="stats elementBrowser">
 		<h2>Stats</h2>
 		Buchungen nach Datum filtern (YYYY-MM-DD): 
-		<input name="filterDate" value="2016" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<input name="filterDate" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
 		<br>
 		
 		Luxusfilter

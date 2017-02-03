@@ -27,6 +27,7 @@ function buchungEditorOpen(td) {
 			.toggleClass('buchungEditorTemplate buchungEditor')
 			.appendTo($('body'))
 	;
+	editor.find('input[name=comment]').focus();
 	
 	//load values
 	var ID = tr.attr('data-ID');
@@ -42,7 +43,10 @@ function buchungEditorOpen(td) {
 	arbAddRemoveBoxFill(hasBox,[]); //empty has-box for now
 	var canHaveBox = editor.find('.arbCanHaveBox > select');
 	arbAddRemoveBoxFill(canHaveBox); //add all tags to the canhave-box
-	var hasTagsAr = $(td).closest('tr').attr('data-hasTags').split(' ');
+	var hasTagsAr = ($(td).closest('tr').attr('data-hasTags') 
+					? $(td).closest('tr').attr('data-hasTags').split(' ')
+					: []
+	);
 	for (var i=0; i < hasTagsAr.length; i++) {
 		//'click' the add button for each tag we have, thus moving it over from CanHave to Has
 		editor.find('.arbCanHaveBox select').val( hasTagsAr[i] );

@@ -686,6 +686,42 @@ class CashDB extends CashDBInit {
 	}
 	
 	public function buchungEdit() {
+		$input = $this->scrubInputs($_GET);
+		if (empty($input['ID']))
+			throw new Exception ("cannot work like this!");
 		
+		#var_dump($input);
+		$sql = sprintf("UPDATE buchungen SET %s WHERE ID=:ID"
+				,'key=value'
+				,$input['ID']
+		);
+		
+		$keys = array('comment', 'luxus', 'recurrence');
+		$stmt = $this->formatSetStatement(
+				'UPDATE buchungen SET %s WHERE ID=:ID', 
+				$input, 
+				$keys
+		);
+		$stmt->bindValue('ID', $input['ID']);
+		if (false === $stmt->execute())
+			throw new Exception("failed to edit buchung");
+				
+		#remember to set tags
+		$clean = $this->prepare("DELETE FROM buchungXtag WHERE buchungID=:ID");
+		$clean->bindParam(':ID', $input['ID']);
+		if (false === $clean->execute())
+			throw new Exception("failed to delete tags from buchung");
+		
+		foreach ($input['tags'] as $tagID) {
+			$setTags = $this->prepare(
+					"INSERT INTO buchungXtag "
+					. "(buchungID, tagID, origin) VALUES (?,?,'manual')"
+			);
+			$setTags->bindParam(1, $input['ID']);
+			$setTags->bindParam(2, $tagID);
+			if (false === $setTags->execute())
+				throw new Exception ("failed re-insert tags on buchung");
+		}
 	}
+	
 }

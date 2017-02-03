@@ -28,7 +28,7 @@ function tagFilterShow(showWhat) {
 		setUrlBarParams('filter', showWhat);
 	}
 	else {//load what the last filter was from URL-bar
-		showWhat = getQueryParams('filter');
+		showWhat = getUrlQueryParams('filter');
 		if (!showWhat) //default to 'all' if that did not work.
 			showWhat = 'all';
 	}
@@ -74,6 +74,7 @@ function tagFilterShow(showWhat) {
  */
 function filterDate() {
 	var date = $('[name=filterDate]').val();
+	setUrlBarParams('date', date);
 	
 	if (!date) //no date, no work
 		return;
@@ -111,6 +112,8 @@ function filterLuxus() {
 
 function filterFullText() {
 	var filter = $('input[name=filterFullText]').val();
+	setUrlBarParams('fts', filter);
+	
 	if (!filter)
 		return;
 	
