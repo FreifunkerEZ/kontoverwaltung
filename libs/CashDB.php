@@ -11,38 +11,78 @@ class CashDB extends CashDBInit {
 				.'VWZ1,VWZ2,VWZ3,VWZ4,VWZ5,VWZ6,VWZ7,VWZ8,VWZ9,VWZ10,VWZ11,VWZ12,VWZ13,VWZ14,'
 				.'Betrag,Kontostand,Waehrung';
 	
+	/**
+	 * where the DB file is.
+	 * @var string
+	 */
+	private $dbPath = '';
 	
 	/**
-	 * collects how many duplicate records were encountered during an import operation.
-	 * @var int
+	 * 
+	 * @param string $path path to the db-file.
+	 * if the file does not exist, it will be created and initialized.
 	 */
-	private $importDupCounter = 0;
-	
 	function __construct($path)	{
-		$this->createDBbackup($path);
-		$this->openDB($path);
+		$this->dbPath = $path;
+		$this->dbBackupCreate();
+		$this->openDB();
 		$this->initDatabase();
 		$this->checkPlausibility();
 		$this->setCsvHeaders();
 	}
 	
-	private function createDBbackup($path) {
-		if (!file_exists($path)) #no DB, no backup
+	private function dbBackupCreate() {
+		if (!file_exists($this->dbPath)) #no DB, no backup
 			return;
 		
-		$fullPath = realpath($path);
-		$backupFile = dirname($fullPath) .'/'. date('Y-m-d')."-Backup-KontoDatenbank.SQLite3";
+		$backupFile = $this->dbBackupFileName();
 		if (file_exists($backupFile))
 			return;
 		
-		if (copy($path, $backupFile))
+		if (copy($this->dbPath, $backupFile))
 			d("Tägliches Datenbank-Backup erfolgreich.");
 		else 
 			e("Tägliches Datenbank-Backup fehlgeschlagen.");
 		
 	}
 	
-	private function openDB($path) {
+	/**
+	 * restore the db to an older state.
+	 * 
+	 * @param string $when - 'today' uses the today's backup.
+	 * @throws Exception if unknown $when is used.
+	 * if the file to restore to cannot be touched.
+	 */
+	public function dbBackupRestore($when) {
+		if ('today' == $when) {
+			$pathToRestore = $this->dbBackupFileName();
+		}
+		else {
+			throw new Exception("unexpected restore option.");
+		}
+
+		#verify backup
+		if (!touch($pathToRestore))
+			throw new Exception ("cannot touch restore-file $pathToRestore. permissions problem / does not exist?");
+			
+		#move current db out of the way to .old
+		$oldDBpath = $this->dbPath.'.old';
+		$this->close();
+		@unlink($oldDBpath); #this might fail, if there is no .old file.
+		rename($this->dbPath, $oldDBpath);
+		
+		#do restore
+		copy($pathToRestore, $this->dbPath);
+		d("Backup restored from $pathToRestore. original DB moved to .old");
+	}
+	
+	protected function dbBackupFileName() {
+		$fullPath = realpath($this->dbPath);
+		return dirname($fullPath) .'/'. date('Y-m-d')."-Backup-KontoDatenbank.SQLite3";
+	}
+	
+	private function openDB() {
+		$path = $this->dbPath;
 		if (!touch($path) )
 			throw new Exception ("cannot touch file");
 		
@@ -57,45 +97,63 @@ class CashDB extends CashDBInit {
 		$this->csvHeaders = explode(',', $this->headerString);
 	}
 	
-	public function processUpload() {
+	public function importProcessUpload() {
 		d("Accepting upload");
-		if ($_FILES['csvfile']['error'] !== 0)
-			throw new Exception(sprintf("Problem with upload %s \n%s: "
-				,decodeUploadError($_FILES['csvfile']['error'])
-				,print_r($_FILES, 'ret')
-			));
-			
-		#get content right into arrays. breaks at least one record that has a LineFeed in the VWZ.
-		#$csvFile = file($_FILES['csvfile']['tmp_name']);
-		
-		#fetch records, cut into array manually at CR-LF
-		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
-		$csvFile = preg_split('/\r\n/', $csvFile); #that should leave the VWZ with the single LF intact
-		
-		$this->importDupCounter = 0;
-		$recordCount            = 0;
-		$dbRecordCountPre       = $this->countBuchungen();
-		$data                   = [];
+		$csvFile          = $this->importCutCSVfile();
+		$dupCount         = 0;
+		$recordCount      = 0;
+		$dbRecordCountPre = $this->countBuchungen();
 		foreach ($csvFile as $line) {
 			#recognize and ignore header-line
-			if (strstr($line,'VWZ1,VWZ2,VWZ3,VWZ4,VWZ5,VWZ6,VWZ7,VWZ8,VWZ9,VWZ10,VWZ11,VWZ12,VWZ13,VWZ14'))
+			if (preg_match('/VWZ1.VWZ2.VWZ3.VWZ4.VWZ5.VWZ6.VWZ7.VWZ8.VWZ9.VWZ10.VWZ11.VWZ12.VWZ13.VWZ14/', $line))
 				continue;
 			if (!trim($line)) #ignore empty lines
 				continue;
 			
-			$data[] = str_getcsv($line);
-			$this->validateAndStore($line);
 			$recordCount++;
+			
+			if ($this->importIsDuplicateRecord($line)) {
+				$dupCount++;
+				continue;
+			}
+			
+			$rawDataAr = preg_split('/;/',$line);
+			$this->importValidateLine($line, $rawDataAr);
+			$rawDataAr = $this->importNormalizeRecord($rawDataAr);
+
+			$ID = $this->importStoreRecord($line, $rawDataAr);
+			$this->importApplyAllRules($ID);
 		}
 		
-		d("$recordCount records processed, {$this->importDupCounter} thereof duplicates.");
+		d("$recordCount records processed, {$dupCount} thereof duplicates.");
 		
-		$counterAdded   = $recordCount - $this->importDupCounter;
+		$counterAdded   = $recordCount - $dupCount;
 		$dbRecordsAdded = $this->countBuchungen() - $dbRecordCountPre;
 		if ($dbRecordsAdded != $counterAdded) {
-                    throw new Exception("increase in record numbers via import-count ($counterAdded) and db-count ($dbRecordsAdded) do not agree");
-                }
+			e("increase in record numbers via import-count ($counterAdded) "
+					. "and db-count ($dbRecordsAdded) do not agree"
+			);
+		}
     } 
+	
+	private function importCutCSVfile(){
+		if ($_FILES['csvfile']['error'] !== UPLOAD_ERR_OK)
+			throw new Exception(sprintf("Problem with upload: %s \n%s: "
+				,decodeUploadError($_FILES['csvfile']['error'])
+				,print_r($_FILES, 'ret')
+			));
+			
+		#fetch records, cut into array manually at CR-LF
+		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
+		/* well, this was for the initial import of the big blob i had collected manually.
+		 * on the bank-provided, diretly imported files we need to cut the lines at LFs only.
+		#using \r\n should leave the VWZ with the single LF intact
+		return preg_split('/\r\n/', $csvFile); 
+		 * 
+		 */
+		return preg_split('/\n/', $csvFile); 
+	}
+
 	
 	public function countBuchungen() {
 		$sql = "SELECT count(*) FROM buchungen;";
@@ -110,14 +168,12 @@ class CashDB extends CashDBInit {
 	 * #vwz1
 	 * #betrag
 	 * 
-	 * checks for duplicates.
-	 * 
 	 * checks if the line has the right number of data-elements
-	 * 
-	 * if no problem is found, the record is added to the database.
-	 * @param unknown $rawDataAr
+	 * @param string $line the raw CSV-data.
+	 * @param array $rawDataAr The line cut into fields already
+	 * @throws Exception if something is not right.
 	 */
-	private function validateAndStore($line) {
+	private function importValidateLine($line, $rawDataAr) {
 		/*
 		   [0]=>  string(11) "Kontonummer"
 		   [1]=>  string(11) "Buchungstag"				<- important
@@ -143,9 +199,8 @@ class CashDB extends CashDBInit {
 		  [21]=>  string(7)  "Währung"		*/
 		
 		#set which record-indexes are needed to pass the validation
-		$required    = array(1,4,19);
+		$required	   = array(1,4,19);
 		
-		$rawDataAr     = str_getcsv($line);
 		$expectedCount = count($this->csvHeaders);
 		$actualCount   = count($rawDataAr);
 		if ($actualCount != $expectedCount)
@@ -157,47 +212,40 @@ class CashDB extends CashDBInit {
 			d($rawDataAr);
 			throw new Exception("No ".$this->csvHeaders[$index]." (index $index) in above record --^ line: $line");
 		}
-		
-		if ($this->isDuplicateRecord($line))
-			return;
-		
-		$this->normalizeAndStoreRecord($rawDataAr, $line);
 	}
 	
-	private function isDuplicateRecord($line) {
-		#TODO test isDuplicateRecord
-		#TODO which data-points to compare then? what makes a record unique? buchungstag, buchungstext, betrag are guaranteed to have data.
-		#can data even change? bits are bits. if the dataformat changes everything is broken anyways. 
+	/**
+	 * tells you if the line was already imported into the db.
+	 * compares the raw-ascii-line to be imported with the lines which are stored in the DB.
+	 * 
+	 * @param string $line
+	 * @return boolean true if dup.
+	 */
+	private function importIsDuplicateRecord($line) {
 		#small overlaps are caused on purpose during bank-export and should show up as expected.
-		#TODO add "prepare import page" which shows days of last known buchungen + what happened on that day. must show again on import to manually verify duplicates are present as expected.
-		#TODO have import-stage? could be looking at records before inserting them into db and messing things up. is that necessary with backups?
+		#there is no import-stage. if the import messes up, restore today's backup.
 		$sql = "select * from buchungen where rawCSV = '$line'";
 		$ret = $this->runQuery($sql);
 		$dup = $ret->fetchArray(SQLITE3_ASSOC);
 		
 		if ($dup) {
-			$this->importDupCounter++;
 			d("Duplicate records found: $line");
 			return true;
 		}
-		
-		
-		
-		
-		return false;
+		else
+			return false;
 	}
 	
 	/**
 	 * sets BuchungstagSortable and importdate.
-	 * normalizes money values.
+	 * puts the record into the database.
 	 * 
-	 * @param unknown $rawDataAr
-	 * @param unknown $line
+	 * @param string $line the raw ASCII-CSV-data
+	 * @param array $rawDataAr
+	 * @return the ID of the new record.
 	 * @throws Exception
 	 */
-	private function normalizeAndStoreRecord($rawDataAr, $line) {
-		$rawDataAr = $this->normalizeRecord($rawDataAr);
-		
+	private function importStoreRecord($line, $rawDataAr) {
 		#if we do lots of records at once, it might run long!
 		set_time_limit(30); 
 		#get rid of dangrous single-quotes in all text elements
@@ -217,6 +265,15 @@ class CashDB extends CashDBInit {
 		$success = $this->exec($sql);
 		if (!$success)
 			throw new Exception("broken SQL something. error: '".$this->lastErrorMsg()."' because of sql: $sql");
+		
+		return $this->lastInsertRowID();
+	}
+	
+	private function importApplyAllRules($buchungID) {
+d("TOFU BuchungsID: $buchungID"); return;
+		foreach ($listOfAllRules as $ruleID) {
+			$this->ruleApply($ruleID);
+		}
 	}
 	
 	private function dateToYmd($dateIn) {
@@ -239,7 +296,7 @@ class CashDB extends CashDBInit {
 	 * expect this format -nnn.nn 
 	 * @param unknown $rawDataAr
 	 */
-	private function normalizeRecord($rawDataAr) {
+	private function importNormalizeRecord($rawDataAr) {
 		$rawDataAr[19] = $this->normalizeNumber($rawDataAr[19]); 
 		$rawDataAr[20] = $this->normalizeNumber($rawDataAr[20]); 
 		return $rawDataAr;

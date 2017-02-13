@@ -7,7 +7,7 @@
 function routeAction($action, $db) {
 	switch ($action) {
 		case 'upload':
-			$db->processUpload();
+			$db->importProcessUpload();
 			break;
 		case 'buchungEdit':
 			$db->buchungEdit();
@@ -28,6 +28,9 @@ function routeAction($action, $db) {
 			if (!isset($_POST['ruleID']))
 				throw new Exception("no rule id, no applying");
 			$db->ruleApply($_POST['ruleID']);
+			break;
+		case 'restoreTodaysBackup':
+			$db->dbBackupRestore('today');
 			break;
 
 		default:
