@@ -119,7 +119,7 @@ class CashDB extends CashDBInit {
 			
 			$rawDataAr = preg_split('/;/',$line);
 			$this->importValidateLine($line, $rawDataAr);
-			$rawDataAr = $this->importNormalizeRecord($rawDataAr);
+			$this->importNormalizeRecord($rawDataAr);
 
 			$ID = $this->importStoreRecord($line, $rawDataAr);
 			$this->importApplyAllRules($ID);
@@ -270,9 +270,10 @@ class CashDB extends CashDBInit {
 	}
 	
 	private function importApplyAllRules($buchungID) {
-d("TOFU BuchungsID: $buchungID"); return;
-		foreach ($listOfAllRules as $ruleID) {
-			$this->ruleApply($ruleID);
+		$sqlRules = "SELECT ID FROM rules";
+		$retRules = $this->runQuery($sqlRules);
+		foreach ($this->toArraySingleRow($retRules) as $ruleID) {
+			$this->ruleApply($ruleID, $buchungID);
 		}
 	}
 	
@@ -294,12 +295,11 @@ d("TOFU BuchungsID: $buchungID"); return;
 		  [20]=>  string(10) "Kontostand"
 	 * input things like 200 or -200 or 8,5 or 12.345,67 or 12.345,67€
 	 * expect this format -nnn.nn 
-	 * @param unknown $rawDataAr
+	 * @param array $rawDataAr - BY REFERENCE
 	 */
-	private function importNormalizeRecord($rawDataAr) {
+	private function importNormalizeRecord(&$rawDataAr) {
 		$rawDataAr[19] = $this->normalizeNumber($rawDataAr[19]); 
 		$rawDataAr[20] = $this->normalizeNumber($rawDataAr[20]); 
-		return $rawDataAr;
 	}
 	
 	private function normalizeNumber($n) {
@@ -361,8 +361,10 @@ d("TOFU BuchungsID: $buchungID"); return;
 			'Betrag',
 		);
 		
-		$sql = "SELECT * FROM buchungen";
-		$ret = $this->runQuery($sql);
+		$sql  = "SELECT * FROM buchungen";
+		$ret  = $this->runQuery($sql);
+		$buchungen = $this->toArray($ret);
+		uasort($buchungen, array($this, 'sortCompare'));
 		
 		print "<table class='$class'>";
 		
@@ -378,7 +380,7 @@ d("TOFU BuchungsID: $buchungID"); return;
 		}
 		print "</tr>\n";
 		
-		while ($buchung = $ret->fetchArray(SQLITE3_ASSOC)) {
+		foreach ($buchungen as $buchung) {
 			$this->collapseVWZ($buchung);
 			$buchungTags		= $this->getTagsForBuchung($buchung['ID']);
 			$buchung['tags']	= implode(',',$buchungTags);
@@ -529,6 +531,13 @@ d("TOFU BuchungsID: $buchungID"); return;
 		return $this->toArray($this->runQuery($sql));
 	}
 	
+	/**
+	 * gets a list of Tag-IDs for this rule.
+	 * 
+	 * @param type $ruleID
+	 * @return hash: 'has' => array of Tag-IDs assigned to this rule 
+	 * + 'canHave' => array of all other available Tag-IDs.
+	 */
 	public function ruleGetTags($ruleID) {
 		$sql = "SELECT tagID FROM ruleXtag WHERE ruleID = '$ruleID'";
 		$ret = $this->runQuery($sql);
@@ -621,42 +630,50 @@ d("TOFU BuchungsID: $buchungID"); return;
 	}
 	
 	/**
-	 * applies a single rule to all buchungen.
+	 * applies a single rule to one or all buchungen.
+	 * @param int $ruleID the ID to apply
+	 * @param int $buchungID OPTIONAL - the buchung which to apply to.
+	 * if not given, all buchungen are inspected.
 	 */
-	public function ruleApply($ruleID) {
-		#TODO apply LUXUS and RECURRING to buchung
-		
+	public function ruleApply($ruleID, $buchungID = NULL) {
 		#get list of tags that go with this rule.
-		$sqlTags = "SELECT tagID FROM 'ruleXtag' WHERE ruleID = $ruleID";
-		$retTags = $this->runQuery($sqlTags);
-		$tags = $this->toArraySingleRow($retTags);
-		if (!$tags) { #no tags, no work.
-			d("Rule $ruleID has no tags");
+		$tags = $this->ruleGetTags($ruleID);
+		if (!$tags['has']) { #no assigned tags, no work.
+			#d("Rule $ruleID has no tags");
 			return;
 		}
-		d("will apply following tags: ".implode(', ', $tags));
+		#d("will apply following tags: ".implode(', ', $tags['has']));
 		
-		#get the regex for the rule
-		$sqlRule = "SELECT filter FROM 'rules' WHERE ID = $ruleID";
-		$retRule = $this->runQuery($sqlRule);
-		$ruleAr  = $this->toArraySingleRow($retRule);
-		$filter  = array_shift($ruleAr);
-		d("Rule $ruleID has filter '$filter'");
+		$filter  = $this->ruleGetFilter($ruleID);
+		#d("Rule $ruleID has filter '$filter'");
 		if (!$filter)
 			return;
 		
-		#get a list of all buchungen
-		$sql = "SELECT * FROM buchungen";
+		#get a list of one/all buchungen
+		$sql = "SELECT * FROM buchungen" . ($buchungID ? " WHERE ID=$buchungID" : '');
 		$retBuchungen = $this->runQuery($sql);
 		
 		foreach ($this->toArray($retBuchungen) as $buchungID => $buchung) {
 			if (!$this->buchungMatchesFilter($buchung, $filter))
 				continue;
 			
-			$this->buchungApplyTags($buchungID, $tags, $ruleID);
+			$this->buchungApplyTags($buchungID, $tags['has'], $ruleID);
 			$this->buchungApplyRecurrence($buchungID, $ruleID);
 			$this->buchungApplyLuxus($buchungID, $ruleID);
 		}
+		d("applied rule $ruleID to buchung $buchungID");
+	}
+
+	/**
+	 * get the regex for the rule
+	 * 
+	 * @param int $ruleID
+	 * @return string
+	 */
+	private function ruleGetFilter($ruleID) {
+		$sqlRule = "SELECT filter FROM 'rules' WHERE ID = $ruleID";
+		$retRule = $this->runQuery($sqlRule);
+		return $this->toSingleValue($retRule);
 	}
 	
 	private function buchungApplyTags($buchungID, $tags, $ruleID) {

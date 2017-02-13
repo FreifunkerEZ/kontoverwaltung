@@ -65,7 +65,7 @@ class CashDBbasics extends SQLite3 {
 	 * fetchArray(SQLITE3_ASSOC) and stuffing the result into
 	 * a numeric array until it ends.
 	 * @param SQLite3Result  $ret
-	 * @return numeric array full of hashes, one hash for each line.
+	 * @return array full of hashes, one hash for each line.
 	 * if a column 'ID' is present, the array is keyed by the ID-value.
 	 * otherwise not.
 	 */
@@ -83,8 +83,10 @@ class CashDBbasics extends SQLite3 {
 	/**
 	 * if the result has only a single row, you may use this to turn the
 	 * sqlite response directly into a single, numeric array.
+	 * if the response has multiple rows, the first row is used.
+	 * 
 	 * @param SQLite3Result  $ret
-	 * @return hash containing the lines of the result-set.
+	 * @return hash containing the first row-value of the lines of the result-set.
 	 * keyed by the field 'ID' if present.
 	 * if no ID is present, the array is numeric.
 	 */
@@ -112,5 +114,21 @@ class CashDBbasics extends SQLite3 {
 		$array = $this->toArraySingleRow($ret);
 		return array_shift($array);
 	}
+	
+	/**
+	 * use this in usort.
+	 * brings the buchungen into chronological order by comparing field 'BuchungstagSortable'.
+	 * 
+	 * @param hash $a buchung
+	 * @param hash $b buchung
+	 * @return int
+	 */
+	protected function sortCompare($a, $b) {
+		if ($a['BuchungstagSortable'] == $b['BuchungstagSortable']) {
+			return 0;
+		}
+		return ($a['BuchungstagSortable'] > $b['BuchungstagSortable']) ? -1 : 1;
+	}
+			
 	
 }
