@@ -1,3 +1,10 @@
+/**
+ * will toggle the visibility-setting of the tag-div.
+ * you should call filtersApply() afterwards to make the changes visible.
+ * 
+ * @param {DOMelement} tagDiv
+ * @returns {undefined}
+ */
 function tagFilterToggle(tagDiv) {
 	//first acutally toggle tag
 	if ('true' === $(tagDiv).attr('data-showTag'))
@@ -8,11 +15,46 @@ function tagFilterToggle(tagDiv) {
 	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
 			.toggleClass('fa-eye fa-eye-slash tagHidden tagVisible')
 	;
-	tagFilterShow('filtered');
+}
+
+/**
+ * sets a tag-button to a desired state.
+ * 
+ * @param {jQuery-input} tagDiv
+ * @param {string} desiredState - available states are 'visible' and 'hidden'
+ * @returns {undefined}
+ */
+function tagFilterSet(tagDiv, desiredState) {
+	if ('visible' === desiredState) { //want visible
+		if('true' === $(tagDiv).attr('data-showTag')) //and is already visible
+			return; //then ignore
+	}
+	else if ('hidden' === desiredState) {
+		if('false' === $(tagDiv).attr('data-showTag'))
+			return;
+	}
+	else {
+		alert("wrong desired state");
+	}
+	tagFilterToggle(tagDiv);
+}
+
+/**
+ * sets all tag-buttons to the desired state
+ * 
+ * @param {type} desiredState - available states are 'visible' and 'hidden'
+ * @returns {undefined}
+ */
+function tagFilterSetAll(desiredState) {
+	var tagSwitches = $('.tagBrowser div[data-showTag]');
+	for (var i=0; i<tagSwitches.length; i++) {
+		tagFilterSet(tagSwitches[i], desiredState)
+	}
 }
 
 /**
  * shows or hides rows in the buchungen table.
+ * call this whenever you changed the filtering conditions.
  * 
  * @param {string} showWhat - OPTIONAL.
  * can be 
@@ -22,7 +64,7 @@ function tagFilterToggle(tagDiv) {
  * if omitted, the last sort-method is applied again.
  * @returns {undefined}
  */
-function tagFilterShow(showWhat) {
+function filtersApply(showWhat) {
 	if (is_string(showWhat)) {
 		//write down what the requested view is.
 		setUrlBarParams('filter', showWhat);
@@ -33,33 +75,29 @@ function tagFilterShow(showWhat) {
 			showWhat = 'all';
 	}
 	
-	var rows = $(document).find('table.records tr');
+	var rows = $('table.records tr');
 	//reset playing field: make everything go away and show headers.
 	rows.hide().find('th').parent().show();
 	
 	if ('filtered' === showWhat) {
-		//find a list of all the things that should be visible
-		var selected = $('.tagBrowser').find('div[data-showTag=true]');
-		//make them show up one after another
-		for (var i = 0; i < selected.length; i++) {
-			var tagId = $(selected[i]).attr('data-ID');
-			//the ~= selector searches for whole words in the attr's value.
-			rows.filter('[data-hasTags~='+tagId+']').show();
-		}
+		filterShowByTags(rows);
 	}
 	else if ('all' === showWhat) {
+		tagFilterSetAll('visible');
 		rows.show();
 	}
 	else if ('untagged' === showWhat) {
-		rows.filter(':not([data-hasTags])').show()
+		rows.filter(':not([data-hasTags])').show();
 	}
 	else if ('none' === showWhat) {
-		//nothing. just the header from above.
+		tagFilterSetAll('hidden');
+		//show nothing. just the header from above.
 	}
 	else {
 		alert("unknown filtermethod " + showWhat);
 	}
 	
+	filterHighlightButton(showWhat);
 	filterDate();
 	filterLuxus();
 	filterFullText();
@@ -67,6 +105,56 @@ function tagFilterShow(showWhat) {
 	statsUpdateCount();
 	statsUpdateTags();
 }
+
+function filterHighlightButton(showWhat) {
+	//reset color of all filter buttons
+	$('button[data-filter]').css({'background-color':''});
+	//set color of right filter button
+	$('button[data-filter='+showWhat+']').css({'background-color':'lemonchiffon'});
+}
+
+/**
+ * looks at the tags.
+ * sees if they are supposed to be displayed or not.
+ * combines that with the filter-mode.
+ * shows the correct buchungen according to that.
+ * all buchungen must be hidden before calling this or you get funny results.
+ * 
+ * @param {jQuery} rows the table-rows to display.
+ * @returns {undefined}
+ */
+function filterShowByTags(rows) {
+	//first figure out the filter-mode
+	var mode = $('input[name=filterMode]:checked').val();
+
+	//find a list of all the things that should be visible
+	var selected = $('.tagBrowser div[data-showTag=true]');
+	
+	if ('and' === mode) {
+		var filterstring = '';
+		//create filterstring by putting all the selected tags together
+		for (var i = 0; i < selected.length; i++) {
+			var tagId = $(selected[i]).attr('data-ID');
+			//the ~= selector searches for whole words in the attr's value.
+			filterstring += '[data-hasTags~='+tagId+']';
+		}
+		//make buchungen show up according to filterstring
+		rows.filter(filterstring).show();
+	}
+	else if ('or' === mode) {
+		//make them show up one after another
+		for (var i = 0; i < selected.length; i++) {
+			var tagId = $(selected[i]).attr('data-ID');
+			//the ~= selector searches for whole words in the attr's value.
+			rows.filter('[data-hasTags~='+tagId+']').show();
+		}
+	}
+	else {
+		alert("logic filter broken?!");
+	}
+}
+
+
 /**
  * applies the content of the date-filter-box as regex against 
  * BuchungstagSortable
@@ -111,6 +199,16 @@ function filterLuxus() {
 	}
 }
 
+function filterMode() {
+	//add persistence
+	var defaultValue = 'or';
+	var desiredValue = $('input[name=filterMode]:checked').val();
+	if (defaultValue === desiredValue)
+		setUrlBarParams('filterMode');
+	else
+		setUrlBarParams('filterMode', desiredValue);
+}
+
 function filterFullText() {
 	var filter = $('input[name=filterFullText]').val();
 	setUrlBarParams('fts', filter);
@@ -128,24 +226,3 @@ function filterFullText() {
 	
 		
 }
-
-function tagFilterShowAll(button) {
-	var tagDiv = $(button).parent();
-	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'true');
-	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
-			.removeClass('fa-eye-slash tagHidden')
-			.addClass('fa-eye tagVisible')
-	;
-	tagFilterShow('all');
-}
-
-function tagFilterShowNone(button) {
-	var tagDiv = $(button).parent();
-	$(tagDiv).find('[data-showTag]').attr('data-showTag', 'false');
-	$(tagDiv).find('i.fa-eye, i.fa-eye-slash')
-			.removeClass('fa-eye tagVisible')
-			.addClass('fa-eye-slash tagHidden')
-	;
-	tagFilterShow('none');
-}
-

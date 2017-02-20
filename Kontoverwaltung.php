@@ -74,11 +74,35 @@ try {
 	<div class="elementBrowser tagBrowser">
 		<h2>Buchungen Filtern mit Tags:</h2>
 		
-		<button onclick="tagNewOpen();">				New Tag			</button>
-		<button onclick="tagFilterShow('untagged');">	Show Untagged	</button>
-		<button onclick="tagFilterShowAll(this);">		Show All		</button>
-		<button onclick="tagFilterShowNone(this);">		Show None		</button>
-		<button onclick="tagFilterShow('filtered');">	Show Filtered	</button>
+		<div class="elementHeaderBox">
+			<button onclick="tagNewOpen();">
+				New Tag			</button>
+			<button onclick="filtersApply('untagged');" data-filter="untagged" title="Nur Buchungen anzeigen die keine Tags haben.">
+				Show Untagged	</button>
+			<button onclick="filtersApply('all');"      data-filter="all" >
+				Show All		</button>
+			<button onclick="filtersApply('none');"     data-filter="none">
+				Show None		</button>
+			<button onclick="filtersApply('filtered');" data-filter="filtered"
+				title="Buchungen müssen mindestens ein Tag haben um angezeigt zu werden.">
+				Show Filtered	</button>
+			
+			Tag-Verknüpfung:
+			<label>
+				<input type="radio" name="filterMode" value="and" onclick="filterMode();filtersApply();">
+				UND
+			</label>
+			<label>
+				<input type="radio" name="filterMode" value="or" checked onclick="filterMode();filtersApply();">
+				ODER
+			</label>
+			<span title="Angezeigte Buchungen ohne Tags">
+				Untagged 
+				Summe:  <span class="untaggedSum"  >Viel</span>
+				Anzahl: <span class="untaggedCount">Viel</span>
+			</span>
+		</div>
+		
 		
 		<table class="elementGrid">
 			<tr>
@@ -181,7 +205,7 @@ try {
 	<div class="stats elementBrowser">
 		<h2>Stats</h2>
 		Buchungen nach Datum filtern (YYYY-MM-DD): 
-		<input name="filterDate" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<input name="filterDate" onkeyup="if (arguments[0].keyCode == 13) filtersApply();">
 		<br>
 		
 		Luxusfilter
@@ -192,10 +216,10 @@ try {
 		<br>
 		
 		Volltextsuche
-		<input name="filterFullText" onkeyup="if (arguments[0].keyCode == 13) tagFilterShow();">
+		<input name="filterFullText" onkeyup="if (arguments[0].keyCode == 13) filtersApply();">
 		<br>
 		
-		<button onclick="tagFilterShow();">Filter Anwenden</button>
+		<button onclick="filtersApply();">Filter Anwenden</button>
 		<br>
 		
 		

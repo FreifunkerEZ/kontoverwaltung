@@ -145,6 +145,8 @@ class CashDB extends CashDBInit {
 			
 		#fetch records, cut into array manually at CR-LF
 		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
+		$csvFile = iconv('Windows-1252', 'UTF-8', $csvFile);
+		
 		/* well, this was for the initial import of the big blob i had collected manually.
 		 * on the bank-provided, diretly imported files we need to cut the lines at LFs only.
 		#using \r\n should leave the VWZ with the single LF intact
@@ -384,6 +386,8 @@ class CashDB extends CashDBInit {
 			$this->collapseVWZ($buchung);
 			$buchungTags		= $this->getTagsForBuchung($buchung['ID']);
 			$buchung['tags']	= implode(',',$buchungTags);
+			$tagNames			= $this->getTagsName($buchungTags);
+			$buchung['tagTitle']= implode(', ', $tagNames);
 			
 			#set table-row attributes
 			print "<tr "
@@ -416,9 +420,12 @@ class CashDB extends CashDBInit {
 				else
 					$extraClass = '';
 				
-				printf("<td class='%s %s'>%s</td>\n"
+				$titleTip = ('tags' == $columnName ? $buchung['tagTitle'] : '');
+				
+				printf("<td class='%s %s' title='%s'>%s</td>\n"
 						,"buchung$columnName"	#so we can find our values easier
 						,$extraClass			#to make something shiny
+						,$titleTip				#mouseover hint
 						,$buchung[$columnName]	#the acutal text
 				);
 			}
@@ -448,7 +455,21 @@ class CashDB extends CashDBInit {
 	 * @return array
 	 */
 	public function getTagsForBuchung($buchungID) {
-		$sql = "SELECT tagID from buchungXtag WHERE buchungID = $buchungID";
+		$sql = "SELECT tagID FROM buchungXtag WHERE buchungID = $buchungID";
+		$ret = $this->runQuery($sql);
+		return $this->toArraySingleRow($ret);
+	}
+	
+	/**
+	 * turns a list of tag-ids into names.
+	 * 
+	 * @param array $tags numeric tag-IDs
+	 * @return array names of the tags in no specific order.
+	 */
+	public function getTagsName($tags) {
+		$tagNames = array();
+		$IDs = implode(',', $tags);
+		$sql = "SELECT name, ID FROM tags WHERE ID in ($IDs)";
 		$ret = $this->runQuery($sql);
 		return $this->toArraySingleRow($ret);
 	}
@@ -534,7 +555,7 @@ class CashDB extends CashDBInit {
 	/**
 	 * gets a list of Tag-IDs for this rule.
 	 * 
-	 * @param type $ruleID
+	 * @param numeric $ruleID
 	 * @return hash: 'has' => array of Tag-IDs assigned to this rule 
 	 * + 'canHave' => array of all other available Tag-IDs.
 	 */
@@ -660,8 +681,8 @@ class CashDB extends CashDBInit {
 			$this->buchungApplyTags($buchungID, $tags['has'], $ruleID);
 			$this->buchungApplyRecurrence($buchungID, $ruleID);
 			$this->buchungApplyLuxus($buchungID, $ruleID);
+			d("applied rule $ruleID to buchung $buchungID");
 		}
-		d("applied rule $ruleID to buchung $buchungID");
 	}
 
 	/**

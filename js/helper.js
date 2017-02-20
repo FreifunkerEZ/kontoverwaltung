@@ -190,7 +190,7 @@ function toggleElements(selector) {
 /**
  * the href in the URL-bar might have some parameters set to affect the page.
  * search for them and enact their intent.
-
+ *
  * @returns {undefined}
  */
 function handlePersistence() {
@@ -199,4 +199,6 @@ function handlePersistence() {
 		$('input[name=filterDate]').val(getUrlQueryParams('date'));
 	if (getUrlQueryParams('fts'))
 		$('input[name=filterFullText]').val(getUrlQueryParams('fts'));
+	if (getUrlQueryParams('filterMode'))
+		$('input[name=filterMode][value='+getUrlQueryParams('filterMode')+']').prop('checked', true);
 }

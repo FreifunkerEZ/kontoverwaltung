@@ -1,23 +1,24 @@
 function statsUpdateSum() {
-	var buchungen = $('table.records tr:visible');
+	var buchungen = $('table.records tr[data-ID]:visible');
 	var sum = 0;
 	for (var i=0; i < buchungen.length; i++) {
 		var value = $(buchungen[i]).attr('data-Betrag');
-		if (!isNaN(value))
-			sum += parseFloat(value);
+		if (isNaN(value))
+			console.log($(buchungen[i]));
+		sum += parseFloat(value);
 	}
 	$('.statsSum').text(sum.toFixed(2));
 }
 function statsUpdateCount() {
-	var buchungen = $('table.records tr:visible');
+	var buchungen = $('table.records tr[data-ID]:visible');
 	$('span.statsCountTotal').text(buchungen.length);
 }
 
 function statsUpdateTags() {
 	var buchungen = $('table.records tr[data-ID]:visible');
 	
-	var count = {};
-	var sumEu = {};
+	var count = {untagged:0};
+	var sumEu = {untagged:0};
 	for (var i = 0; i<buchungen.length; i++) {
 		//load all the tags from the buchung. split it to an array of single tags each.
 		var tags = $(buchungen[i]).attr('data-hastags');
@@ -45,5 +46,6 @@ function statsUpdateTags() {
 			$(allTags[i]).find('span.tagSum'  ).text(sumEu[tagID].toFixed(2) + ' €');
 		}
 	}
-	console.log(count['untagged'],sumEu['untagged']);
+	$('span.untaggedCount').text(count['untagged']);
+	$('span.untaggedSum'  ).text(sumEu['untagged'].toFixed(2) + ' €');
 }

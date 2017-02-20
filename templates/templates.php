@@ -11,7 +11,7 @@ function printTagBox($tag) {
 		data-justifies	="<?php print $tag['justifies'];?>"
 		data-color		="<?php print $tag['color'];?>"
 		data-showTag	="true"
-		onclick			="tagFilterToggle(this)"
+		onclick			="tagFilterToggle(this);filtersApply('filtered');"
 	>
 		<?php print ($tag['justifies'] 
 				? '<i class="fa fa-fw fa-check"    title="Dieses Tag setzt die Buchung auf erklärt."></i>' 
@@ -20,6 +20,7 @@ function printTagBox($tag) {
 		<div class='tagCaption'>
 			<?php print $tag['name'];?>
 			<br>
+			ID:<?php print $tag['ID'];?>
 			<img src="/gfx/count.gif" alt="count" width="16"/>
 			<span class='tagCount' style='width:1.5em;display:inline-block;'>ct</span>
 			&Sigma;

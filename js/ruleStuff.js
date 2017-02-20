@@ -33,8 +33,9 @@ function ruleNewOpen(button) {
 
 function ruleSave(button){
 	var editor  = $(button).parent();
+	var ruleID  = editor.find('[name=ID]').text();
 	var params  = {
-		ID:			editor.find('[name=ID]').text(),
+		ID:			ruleID,
 		name:		editor.find('[name=name]').val(),
 		comment:	editor.find('[name=comment]').val(),
 		filter:		editor.find('[name=filter]').val(),
@@ -47,8 +48,9 @@ function ruleSave(button){
 		{params : JSON.stringify(params)},
 		function(data) {
 			console.log(data);
-			var ID = data.match(/newRuleId:'(\d+)'/);
-			ruleApply(button, ID[1]);
+			if (ruleID === 'NEW')
+				ruleID = data.match(/newRuleId:'(\d+)'/);
+			ruleApply(button, ruleID[1]);
 		}
 	)
 		.fail(function(data){alert('save failed.');console.log(data);})
