@@ -104,6 +104,7 @@ class CashDB extends CashDBInit {
 		$recordCount      = 0;
 		$dbRecordCountPre = $this->countBuchungen();
 		foreach ($csvFile as $line) {
+			$line = $this->escapeString($line);
 			#recognize and ignore header-line
 			if (preg_match('/VWZ1.VWZ2.VWZ3.VWZ4.VWZ5.VWZ6.VWZ7.VWZ8.VWZ9.VWZ10.VWZ11.VWZ12.VWZ13.VWZ14/', $line))
 				continue;
@@ -134,7 +135,63 @@ class CashDB extends CashDBInit {
 					. "and db-count ($dbRecordsAdded) do not agree"
 			);
 		}
+		$this->importVerifyNoDuplicates();
     } 
+	
+	/**
+	 * check all Buchungen against each other.
+	 * Only basic data-points are used.
+	 */
+	private function importVerifyNoDuplicates(){
+		d("Checking globally for duplicates");
+		$allBuchungen = $this->runQuery("SELECT * FROM buchungen");
+		$count = 0;
+		$duplicates = 0;
+		$exceptionsList = [
+			1805, #3x DB fahrkarte
+			1806, #3x DB fahrkarte
+			1807, #3x DB fahrkarte
+			1829, #paypal selber betrag
+		];
+		foreach ($this->toArray($allBuchungen) as $buchung) {
+			$count++;
+			$sql = sprintf("SELECT * FROM buchungen WHERE Betrag='%s' AND Buchungstag='%s' AND ID > %s",
+				$buchung['Betrag'],
+				$buchung['Buchungstag'],
+				#$buchung['Kontostand'] ? $buchung['Kontostand'] : 0,
+				$buchung['ID']
+			);
+			$possibleDuplicates = $this->runQuery($sql);
+			foreach ($this->toArray($possibleDuplicates) as $dup) {
+				if (
+					   !empty($dup['Kontostand']) 
+					&& !empty($buchung['Kontostand'])
+					&& $dup['Kontostand'] == $dup['Kontostand']
+				) {
+					#d("Possible duplicate resolved via differing Kontostand.");
+					continue;
+				}
+				elseif (in_array($dup['ID'], $exceptionsList)) {
+					continue;
+				}
+					
+				$duplicates++;
+				e(sprintf(
+					"<pre>Simple duplicate %i found on Buchung %i:\n%s\n%s</pre>"
+					,$duplicates
+					,$buchung['ID']
+					,print_r($buchung,'ret')
+					,print_r($dup,'ret')
+				));
+			}
+		}
+		
+		$sql = "SELECT count(*) AS dups FROM buchungen GROUP BY rawCSV HAVING dups >= 2";
+		$ret = $this->toArray($this->runQuery($sql));
+		d("$count Buchungen checked for dups, $duplicates possible duplicates found.");
+		if ($ret) d("duplicate rawCSV:\n".print_r($ret, 'ret'));
+	}
+	
 	
 	private function importCutCSVfile(){
 		if ($_FILES['csvfile']['error'] !== UPLOAD_ERR_OK)

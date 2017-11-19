@@ -12,7 +12,7 @@ try {
 	ob_start();
 	header('Content-Type: text/html; charset=utf-8');
 
-	$db = new CashDB('c:\temp\KontoDatenbank.SQLite3');
+	$db = new CashDB('F:\My Documents\Kontoverwaltung-Daten\KontoDatenbank.SQLite3');
 	if(!$db)
 		throw new Exception( $db->lastErrorMsg());
 
@@ -25,9 +25,10 @@ try {
 } catch (Exception $e) {
 	http_response_code(500);
 	ob_end_flush();
-	print "<h1>EGGSEPTSCHUN!</h1>";
+	print "<h1>EGGSEPTSCHUN!</h1><pre>";
 	e($e->getMessage());
 	e($e->getTraceAsString());
+	print "</pre>";
 	exit;
 }
 
@@ -70,7 +71,6 @@ try {
 	<button onclick="toggleElements('.ruleBrowser');">View Rules</button>
 	<button onclick="toggleElements('.uploadForm');">Upload Data</button>
 	
-	
 	<div class="elementBrowser tagBrowser">
 		<h2>Buchungen Filtern mit Tags:</h2>
 		
@@ -108,6 +108,7 @@ try {
 			<tr>
 				<td>
 					<?php 
+					#TODO FIXME rule: edit -> save & apply -> nothing happens. vs rule -> edit -> apply --> works 
 					$tags = $db->tagsList();;
 					$displayColumnCount = 5; #how wide should the tag-browser be?
 					$tagsPerColumn = ceil(count($tags) / $displayColumnCount);

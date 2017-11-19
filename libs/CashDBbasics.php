@@ -22,7 +22,7 @@ class CashDBbasics extends SQLite3 {
 	protected function runQuery($sql) {
 		$ret = $this->query($sql);
 		if(!$ret){
-			throw new Exception($this->lastErrorMsg());
+			throw new Exception("Problem ".$this->lastErrorMsg()." on SQL Statement: $sql");
 		} else {
 			return $ret;
 		}
