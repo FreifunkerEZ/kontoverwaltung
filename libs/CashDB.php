@@ -34,6 +34,28 @@ class CashDB extends CashDBImport {
 	 * @var string
 	 */
 	private $dbPath = '';
+
+	private $html_table_column_names = array(
+		'Buchungstag',
+		'AuftraggeberEmpfaenger',
+		'Buchungstext',
+		'Verwendungszweck',
+		'comment',
+		'Betrag',
+		'recurrence',
+		'luxus',
+		'tags',
+	);
+	private $html_table_data_field_names = array(
+		'ID',
+		'Kontostand',
+		'importdate',
+		'BuchungstagSortable',
+		'rawCSV',
+		'luxus',
+		'Betrag',
+	);
+
 	
 	/**
 	 * 
@@ -136,47 +158,8 @@ class CashDB extends CashDBImport {
 			'Luxus',
 			'Tags',
 		);
-
-	}
-
-
-	/**
-	 * Prints a nice table with all the buchungen in the database.
-	 * i know it should not do this, but currently i got no better idea quickly.
-	 * 
-	 * @param string $class which CSS-class the table should have.
-	 */
-	public function printData($class) {
-		$colNames = array(
-			'Buchungstag',
-			'AuftraggeberEmpfaenger',
-			'Buchungstext',
-			'Verwendungszweck',
-			'comment',
-			'Betrag',
-			'recurrence',
-			'luxus',
-			'tags',
-		);
-		$data = array(
-			'ID',
-			'Kontostand',
-			'importdate',
-			'BuchungstagSortable',
-			'rawCSV',
-			'luxus',
-			'Betrag',
-		);
-		
-		$sql  = "SELECT * FROM buchungen";
-		$ret  = $this->runQuery($sql);
-		$buchungen = $this->toArray($ret);
-		uasort($buchungen, array($this, 'sortCompare'));
-		
-		print "<table class='$class'>";
 		
 		print "<tr>";
-		$this->_printHeaderRow();
 		print '<th onclick="buchungToggleSelectionAll(this);" >'
 				. '<i class="fa fa-square-o" aria-hidden="true"></i>'
 				. '</th>'
@@ -185,57 +168,94 @@ class CashDB extends CashDBImport {
 			print("<th>$header</th>");
 		}
 		print "</tr>\n";
+
+	}
+
+	private function row_selector_checkbox_TD() {
+		return '<td onclick="buchungToggleSelection(this);">'
+			. '<i class="fa fa-square-o rowSelector" aria-hidden="true"></i>'
+			. '</td>';
+	}
+
+	private function edit_pencil_TD() {
+		return '<td onclick="buchungEditorOpen(this);">'
+				. '<i class="fa fa-pencil" aria-hidden="true"></i>'
+				. '</td>';
+	}
+	
+	private function _get_all_buchungen_sorted() {
+		$sql  = "SELECT * FROM buchungen";
+		$ret  = $this->runQuery($sql);
+		$buchungen = $this->toArray($ret);
+		uasort($buchungen, array($this, 'sortCompare'));
+		return $buchungen;
+	}
+	
+	/**
+	 * Prints a nice table with all the buchungen in the database.
+	 * i know it should not do this, but currently i got no better idea quickly.
+	 * 
+	 * @param string $class which CSS-class the table should have.
+	 */
+	public function printData($class) {
+		$buchungen = $this->_get_all_buchungen_sorted();
+		print "<table class='$class'>";
+		
+		$this->_printHeaderRow();
 		
 		foreach ($buchungen as $buchung) {
-			$this->collapseVWZ($buchung);
-			$buchungTags		= $this->getTagsForBuchung($buchung['ID']);
-			$buchung['tags']	= implode(',',$buchungTags);
-			$tagNames			= $this->getTagsName($buchungTags);
-			$buchung['tagTitle']= implode(', ', $tagNames);
-			
-			#set table-row attributes
-			print "<tr "
-					. "style='display:none' "
-					. "title='ID: {$buchung['ID']}'"
-			;
-			foreach ($data as $columnName) {
-				printf("data-$columnName='%s' ", $buchung[$columnName]);
-			}
-			if (!empty($buchungTags))
-				printf("data-hasTags='%s' ", implode(' ', $buchungTags));
-			print " >";
-			
-			#insert row-selector-checkbox-TD
-			print '<td onclick="buchungToggleSelection(this);">'
-					. '<i class="fa fa-square-o rowSelector" aria-hidden="true"></i>'
-					. '</td>'
-			;
-			
-			#insert edit-pencil-TD
-			print '<td onclick="buchungEditorOpen(this);">'
-					. '<i class="fa fa-pencil" aria-hidden="true"></i>'
-					. '</td>'
-			;
-			
-			#print values
-			foreach ($colNames as $columnName) {
-				if ('Betrag' == $columnName)
-					$extraClass = $this->classifyBetrag($buchung[$columnName]);
-				else
-					$extraClass = '';
-				
-				$titleTip = ('tags' == $columnName ? $buchung['tagTitle'] : '');
-				
-				printf("<td class='%s %s' title='%s'>%s</td>\n"
-						,"buchung$columnName"	#so we can find our values easier
-						,$extraClass			#to make something shiny
-						,$titleTip				#mouseover hint
-						,$buchung[$columnName]	#the acutal text
-				);
-			}
-			print "</tr>";
+			$this->_print_data_row($buchung);
 		}
 		print "</table>";
+	}
+
+	private function _print_data_row($buchung) {
+		$this->collapseVWZ($buchung);
+		$buchung['tags_array']	= $this->getTagsForBuchung($buchung['ID']);
+		$buchung['tags']		= implode(',',$buchung['tags_array']);
+		
+		$tagNames				= $this->getTagsName($buchung['tags_array']);
+		$buchung['tagTitle']	= implode(', ', $tagNames);
+
+		print "<tr ";
+			$this->_print_data_row_attributes($buchung);
+		print " >";
+
+		print $this->row_selector_checkbox_TD();
+		print $this->edit_pencil_TD();
+
+		#print values
+		$this->_print_data_row_value_tds($buchung);
+		print "</tr>";
+	}
+	
+	private function _print_data_row_attributes($buchung) {
+		print "style='display:none' "
+			. "title='ID: {$buchung['ID']}'"
+		;
+		foreach ($this->html_table_data_field_names as $columnName) {
+			printf("data-$columnName='%s' ", $buchung[$columnName]);
+		}
+		if (!empty($buchung['tags_array']))
+			printf("data-hasTags='%s' ", implode(' ', $buchung['tags_array']));
+	}
+	
+	private function _print_data_row_value_tds($buchung) {
+		foreach ($this->html_table_column_names as $columnName) {
+			if ('Betrag' == $columnName)
+				$extraClass = $this->classifyBetrag($buchung[$columnName]);
+			else
+				$extraClass = '';
+
+			$titleTip = ('tags' == $columnName ? $buchung['tagTitle'] : '');
+
+			printf("<td class='%s %s' title='%s'>%s</td>\n"
+					,"buchung$columnName"	#so we can find our values easier
+					,$extraClass			#to make something shiny
+					,$titleTip				#mouseover hint
+					,$buchung[$columnName]	#the acutal text
+			);
+		}
 	}
 	
 	private function classifyBetrag($betrag) {
