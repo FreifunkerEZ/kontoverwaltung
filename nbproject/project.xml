@@ -6,6 +6,8 @@
             <name>kontoverwaltung</name>
         </data>
         <spellchecker-wordlist xmlns="http://www.netbeans.org/ns/spellchecker-wordlist/1">
+            <word>buchung</word>
+            <word>buchungen</word>
             <word>Volltextsuche</word>
         </spellchecker-wordlist>
     </configuration>

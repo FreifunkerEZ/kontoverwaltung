@@ -80,6 +80,13 @@ class CashDBbasics extends SQLite3 {
 		return $output;
 	}
 	
+	public function countBuchungen() {
+		$sql = "SELECT count(*) FROM buchungen;";
+		$ret = $this->runQuery($sql);
+		$out = $ret->fetchArray();
+		return $out[0];
+	}
+	
 	/**
 	 * if the result has only a single row, you may use this to turn the
 	 * sqlite response directly into a single, numeric array.
