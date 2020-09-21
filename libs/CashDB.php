@@ -11,21 +11,21 @@ class CashDB extends CashDBInit {
 	 *  the 2019 headers							the DB fields
 	 *  0 "Buchungstag";							Buchungstag
 	 *  1 "Valuta";									Wertstellung
-	 *  2 "Auftraggeber/Zahlungsempfänger";			VWZ1
+	 *  2 "Auftraggeber/Zahlungsempfänger";			VWZ2
 	 *  3 "Empfänger/Zahlungspflichtiger";			AuftraggeberEmpfaenger
 	 *  4 "Konto-Nr.";	leer						Kontonummer
-	 *  5 "IBAN";	wir, bei überweisungen die		VWZ2
-	 *  6 "BLZ";	leer							VWZ3
-	 *  7 "BIC";									VWZ4
-	 *  8 "Vorgang/Verwendungszweck";				Buchungstext
-	 *  9 "Kundenreferenz";	leer					VWZ5
+	 *  5 "IBAN";	wir, bei überweisungen die		VWZ3
+	 *  6 "BLZ";	leer							VWZ4
+	 *  7 "BIC";									VWZ5
+	 *  8 "Vorgang/Verwendungszweck";				VWZ1
+	 *  9 "Kundenreferenz";	leer					VWZ6
 	 * 10 "Währung";								Waehrung
 	 * 11 "Umsatz";	niemals minus. check S/H --v	Betrag
-	 * 12 " "	soll/haben							VWZ6
+	 * 12 " "	soll/haben							VWZ7
 	 * 
 	 * and how that must look like for the database:
 	 */
-	private $headerString = 'Buchungstag,Wertstellung,VWZ1,AuftraggeberEmpfaenger,Kontonummer,VWZ2,VWZ3,VWZ4,Buchungstext,VWZ5,Waehrung,Betrag,VWZ6';
+	private $headerString = 'Buchungstag,Wertstellung,VWZ2,AuftraggeberEmpfaenger,Kontonummer,VWZ3,VWZ4,VWZ5,VWZ1,VWZ6,Waehrung,Betrag,VWZ7';
 	
 	/**
 	 * where the DB file is.
@@ -121,10 +121,11 @@ class CashDB extends CashDBInit {
 VWZ1.VWZ2.VWZ3.VWZ4.VWZ5.VWZ6.VWZ7.VWZ8.VWZ9.VWZ10.VWZ11.VWZ12.VWZ13.VWZ14
 "GLS Bank"
 "Umsatzanzeige"
-"BLZ:";"43060967";;"Datum:";"25.08.2019"
-"Konto:";"8220778400";;"Uhrzeit:";"10:05:25"
+"BLZ:";"43060967";;"Datum:";"
+"Konto:";"8220778400";;"Uhrzeit:";"
 "Abfrage von:";"Christian Kalk";;"Kontoinhaber:";"Christian und Steffi Kalk"
-"Zeitraum:";"Alle Umsätze";"von:";;"bis:";
+"Zeitraum:";"Alle Umsätze";"von:";.*;"bis:";.*
+"Zeitraum:";;"von:";.*;"bis:";
 "Betrag in EUR:";;"von:";" ";"bis:";" "
 "Sortiert nach:";"Buchungstag";"absteigend"
 "Buchungstag";"Valuta";"Auftraggeber.Zahlungsempfänger";"Empfänger.Zahlungspflichtiger";"Konto-Nr.";"IBAN";"BLZ";"BIC";"Vorgang.Verwendungszweck";"Kundenreferenz";"Währung";"Umsatz";" "
@@ -203,6 +204,11 @@ EOF;
 			1807, #3x DB fahrkarte
 			1829, #paypal selber betrag
 			1990, #BankCard gebühr
+			2333, #BankCard gebühr
+			2263, #2x Auszahlung von unterschiedlichen automaten
+			2919, #diverses
+			3003, #ok
+			3298,
 		];
 		foreach ($this->toArray($allBuchungen) as $buchung) {
 			$count++;
@@ -248,9 +254,9 @@ EOF;
 		#fetch records, cut into array manually at CR-LF
 		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
 		$csvFile = iconv('Windows-1252', 'UTF-8', $csvFile);
-		$csvFile = preg_replace('/\n/', '', $csvFile);  # new format (2019-ish) has /n for in-line breaks and /r for end of line.
+#		$csvFile = preg_replace('/\n/', '', $csvFile);  # new format (2019-ish) has /n for in-line breaks and /r for end of line.
 		
-		$return = preg_split('/\r/', $csvFile);
+		$return = preg_split('/\r\n/', $csvFile);
 		$num = count($return);
 		d("Split file into $num lines.");
 		return $return; 
@@ -290,8 +296,10 @@ EOF;
 	private function _assertElementCount($rawDataAr) {
 		$expectedCount = count($this->csvHeaders);
 		$actualCount   = count($rawDataAr);
-		if ($actualCount != $expectedCount)
-			throw new Exception("expected $expectedCount elements, but got $actualCount elements on line: $line");
+		if ($actualCount != $expectedCount) {
+			e($rawDataAr);
+			throw new Exception("expected $expectedCount elements, but got $actualCount elements on input --^");
+		}
 	}
 	
 	/**
@@ -309,7 +317,7 @@ EOF;
 		$dup = $ret->fetchArray(SQLITE3_ASSOC);
 		
 		if ($dup) {
-			d("Duplicate records found: $line");
+			d("Duplicate raw-CSV import found: $line");
 			return true;
 		}
 		else
@@ -396,7 +404,7 @@ EOF;
 			e("funny money. regex does not match: $n");
 		
 		$matches[2] = str_replace('.', '', $matches[2]); #
-		d( "$n = ".$matches[1].$matches[2].'.'.$matches[3]);
+		# d( "$n = ".$matches[1].$matches[2].'.'.$matches[3]);
 		return $matches[1].$matches[2].'.'.$matches[3];
 	}
 	
