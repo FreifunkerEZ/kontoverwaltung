@@ -7,13 +7,13 @@ function printTemplate($filename) {
 function d($msg) {
 	if (!is_string($msg))
 		$msg = print_r($msg,'ret');
-	echo "<p class='console debug'><b>DEBUG:</b> $msg</p>";
+	echo "<p class='console debug'><b>DEBUG: </b>$msg</p>\n";
 }
 
 function e($msg) {
 	if (!is_string($msg))
 		$msg = print_r($msg,'ret');
-	echo "<p class='console error'><b>ERROR:</b> $msg</p>";
+	echo "<p class='console error'><b>ERROR: </b>$msg</p>\n";
 }
 
 function decodeUploadError($code) {

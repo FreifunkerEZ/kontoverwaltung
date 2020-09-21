@@ -11,8 +11,9 @@ spl_autoload_register(function($class) {
 try {
 	ob_start();
 	header('Content-Type: text/html; charset=utf-8');
-
-	$db = new CashDB('F:\My Documents\Kontoverwaltung-Daten\KontoDatenbank.SQLite3');
+	
+	$p = 'F:\My Documents\Google Drive\Scans Input - Sort me\Bank\GLS\Kontoverwaltung-Daten\KontoDatenbank.SQLite3';
+	$db = new CashDB($p);
 	if(!$db)
 		throw new Exception( $db->lastErrorMsg());
 

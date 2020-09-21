@@ -7,9 +7,25 @@ class CashDB extends CashDBInit {
 	 * @var array
 	 */
 	private $csvHeaders = array();
-	private $headerString = 'Kontonummer,Buchungstag,Wertstellung,AuftraggeberEmpfaenger,Buchungstext,'
-				.'VWZ1,VWZ2,VWZ3,VWZ4,VWZ5,VWZ6,VWZ7,VWZ8,VWZ9,VWZ10,VWZ11,VWZ12,VWZ13,VWZ14,'
-				.'Betrag,Kontostand,Waehrung';
+	/*
+	 *  the 2019 headers							the DB fields
+	 *  0 "Buchungstag";							Buchungstag
+	 *  1 "Valuta";									Wertstellung
+	 *  2 "Auftraggeber/Zahlungsempfänger";			VWZ1
+	 *  3 "Empfänger/Zahlungspflichtiger";			AuftraggeberEmpfaenger
+	 *  4 "Konto-Nr.";	leer						Kontonummer
+	 *  5 "IBAN";	wir, bei überweisungen die		VWZ2
+	 *  6 "BLZ";	leer							VWZ3
+	 *  7 "BIC";									VWZ4
+	 *  8 "Vorgang/Verwendungszweck";				Buchungstext
+	 *  9 "Kundenreferenz";	leer					VWZ5
+	 * 10 "Währung";								Waehrung
+	 * 11 "Umsatz";	niemals minus. check S/H --v	Betrag
+	 * 12 " "	soll/haben							VWZ6
+	 * 
+	 * and how that must look like for the database:
+	 */
+	private $headerString = 'Buchungstag,Wertstellung,VWZ1,AuftraggeberEmpfaenger,Kontonummer,VWZ2,VWZ3,VWZ4,Buchungstext,VWZ5,Waehrung,Betrag,VWZ6';
 	
 	/**
 	 * where the DB file is.
@@ -97,28 +113,62 @@ class CashDB extends CashDBInit {
 		$this->csvHeaders = explode(',', $this->headerString);
 	}
 	
+	private function _isUninterestingLine($line) {
+			if (!trim($line)) #ignore empty lines
+				return TRUE;
+			
+			$headers = <<<EOF
+VWZ1.VWZ2.VWZ3.VWZ4.VWZ5.VWZ6.VWZ7.VWZ8.VWZ9.VWZ10.VWZ11.VWZ12.VWZ13.VWZ14
+"GLS Bank"
+"Umsatzanzeige"
+"BLZ:";"43060967";;"Datum:";"25.08.2019"
+"Konto:";"8220778400";;"Uhrzeit:";"10:05:25"
+"Abfrage von:";"Christian Kalk";;"Kontoinhaber:";"Christian und Steffi Kalk"
+"Zeitraum:";"Alle Umsätze";"von:";;"bis:";
+"Betrag in EUR:";;"von:";" ";"bis:";" "
+"Sortiert nach:";"Buchungstag";"absteigend"
+"Buchungstag";"Valuta";"Auftraggeber.Zahlungsempfänger";"Empfänger.Zahlungspflichtiger";"Konto-Nr.";"IBAN";"BLZ";"BIC";"Vorgang.Verwendungszweck";"Kundenreferenz";"Währung";"Umsatz";" "
+;;;;;;;;;"Anfangssaldo";"EUR"
+;;;;;;;;;"Endsaldo";"EUR"
+EOF;
+			$header_array = preg_split('/\n/', $headers);
+			$header_array = array_map('trim', $header_array);
+
+			foreach ($header_array as $uninteresting) {
+				if (preg_match("/$uninteresting/", $line))
+					return TRUE;
+			}
+		return FALSE;
+	}
+	
 	public function importProcessUpload() {
 		d("Accepting upload");
 		$csvFile          = $this->importCutCSVfile();
+		$dbRecordCountPre = $this->countBuchungen();
 		$dupCount         = 0;
 		$recordCount      = 0;
-		$dbRecordCountPre = $this->countBuchungen();
+		
 		foreach ($csvFile as $line) {
-			$line = $this->escapeString($line);
-			#recognize and ignore header-line
-			if (preg_match('/VWZ1.VWZ2.VWZ3.VWZ4.VWZ5.VWZ6.VWZ7.VWZ8.VWZ9.VWZ10.VWZ11.VWZ12.VWZ13.VWZ14/', $line))
+			$line = trim($line);
+			if ($this->_isUninterestingLine($line)) {
+				d("Uninteresting: $line");
 				continue;
-			if (!trim($line)) #ignore empty lines
-				continue;
-			
+			}
 			$recordCount++;
 			
+			$line = $this->escapeString($line);
 			if ($this->importIsDuplicateRecord($line)) {
 				$dupCount++;
 				continue;
 			}
 			
 			$rawDataAr = preg_split('/;/',$line);
+			foreach ($rawDataAr as &$field) {
+				$field = trim($field);
+				$field = trim($field, '"');
+				$field = trim($field);
+			}
+			
 			$this->importValidateLine($line, $rawDataAr);
 			$this->importNormalizeRecord($rawDataAr);
 
@@ -147,33 +197,29 @@ class CashDB extends CashDBInit {
 		$allBuchungen = $this->runQuery("SELECT * FROM buchungen");
 		$count = 0;
 		$duplicates = 0;
-		$exceptionsList = [
+		$exceptionsList = [ # add higher ID-number of dup to list.
 			1805, #3x DB fahrkarte
 			1806, #3x DB fahrkarte
 			1807, #3x DB fahrkarte
 			1829, #paypal selber betrag
+			1990, #BankCard gebühr
 		];
 		foreach ($this->toArray($allBuchungen) as $buchung) {
 			$count++;
 			$sql = sprintf("SELECT * FROM buchungen WHERE Betrag='%s' AND Buchungstag='%s' AND ID > %s",
 				$buchung['Betrag'],
 				$buchung['Buchungstag'],
-				#$buchung['Kontostand'] ? $buchung['Kontostand'] : 0,
 				$buchung['ID']
 			);
 			$possibleDuplicates = $this->runQuery($sql);
 			foreach ($this->toArray($possibleDuplicates) as $dup) {
-				if (
-					   !empty($dup['Kontostand']) 
-					&& !empty($buchung['Kontostand'])
-					&& $dup['Kontostand'] == $dup['Kontostand']
-				) {
-					#d("Possible duplicate resolved via differing Kontostand.");
+				if (in_array($dup['ID'], $exceptionsList))
 					continue;
-				}
-				elseif (in_array($dup['ID'], $exceptionsList)) {
-					continue;
-				}
+				
+				if (   !empty($dup['Kontostand'])				# if both orig 
+					&& !empty($buchung['Kontostand'])			# and dup have a kontostand
+					&& $buchung['Kontostand'] != $dup['Kontostand']	# but they differ
+				) continue;
 					
 				$duplicates++;
 				e(sprintf(
@@ -192,7 +238,6 @@ class CashDB extends CashDBInit {
 		if ($ret) d("duplicate rawCSV:\n".print_r($ret, 'ret'));
 	}
 	
-	
 	private function importCutCSVfile(){
 		if ($_FILES['csvfile']['error'] !== UPLOAD_ERR_OK)
 			throw new Exception(sprintf("Problem with upload: %s \n%s: "
@@ -203,17 +248,14 @@ class CashDB extends CashDBInit {
 		#fetch records, cut into array manually at CR-LF
 		$csvFile = file_get_contents($_FILES['csvfile']['tmp_name']);
 		$csvFile = iconv('Windows-1252', 'UTF-8', $csvFile);
+		$csvFile = preg_replace('/\n/', '', $csvFile);  # new format (2019-ish) has /n for in-line breaks and /r for end of line.
 		
-		/* well, this was for the initial import of the big blob i had collected manually.
-		 * on the bank-provided, diretly imported files we need to cut the lines at LFs only.
-		#using \r\n should leave the VWZ with the single LF intact
-		return preg_split('/\r\n/', $csvFile); 
-		 * 
-		 */
-		return preg_split('/\n/', $csvFile); 
+		$return = preg_split('/\r/', $csvFile);
+		$num = count($return);
+		d("Split file into $num lines.");
+		return $return; 
 	}
 
-	
 	public function countBuchungen() {
 		$sql = "SELECT count(*) FROM buchungen;";
 		$ret = $this->runQuery($sql);
@@ -233,44 +275,23 @@ class CashDB extends CashDBInit {
 	 * @throws Exception if something is not right.
 	 */
 	private function importValidateLine($line, $rawDataAr) {
-		/*
-		   [0]=>  string(11) "Kontonummer"
-		   [1]=>  string(11) "Buchungstag"				<- important
-		   [2]=>  string(12) "Wertstellung"
-		   [3]=>  string(22) "Auftraggeber/Empfänger"
-		   [4]=>  string(12) "Buchungstext"				<- important
-		   [5]=>  string(4)  "VWZ1"
-		   [6]=>  string(4)  "VWZ2"
-		   [7]=>  string(4)  "VWZ3"
-		   [8]=>  string(4)  "VWZ4"
-		   [9]=>  string(4)  "VWZ5"
-		  [10]=>  string(4)  "VWZ6"
-		  [11]=>  string(4)  "VWZ7"
-		  [12]=>  string(4)  "VWZ8"
-		  [13]=>  string(4)  "VWZ9"
-		  [14]=>  string(5)  "VWZ10"
-		  [15]=>  string(5)  "VWZ11"
-		  [16]=>  string(5)  "VWZ12"
-		  [17]=>  string(5)  "VWZ13"
-		  [18]=>  string(5)  "VWZ14"
-		  [19]=>  string(6)  "Betrag"					<- important
-		  [20]=>  string(10) "Kontostand"
-		  [21]=>  string(7)  "Währung"		*/
+		$this->_assertElementCount($rawDataAr);
 		
 		#set which record-indexes are needed to pass the validation
-		$required	   = array(1,4,19);
-		
+		$required	   = array(0, 8, 11);  # Buchungstag, Vorgang/Verwendungszweck, Umsatz
+		foreach ($required as $index) {
+			if (empty($rawDataAr[$index])) {
+				d($rawDataAr);
+				throw new Exception("No ".$this->csvHeaders[$index]." (index $index) in above record --^ line: $line");
+			}
+		}
+	}
+	
+	private function _assertElementCount($rawDataAr) {
 		$expectedCount = count($this->csvHeaders);
 		$actualCount   = count($rawDataAr);
 		if ($actualCount != $expectedCount)
 			throw new Exception("expected $expectedCount elements, but got $actualCount elements on line: $line");
-			
-		foreach ($required as $index) {
-			if (!empty($rawDataAr[$index]))
-				continue;
-			d($rawDataAr);
-			throw new Exception("No ".$this->csvHeaders[$index]." (index $index) in above record --^ line: $line");
-		}
 	}
 	
 	/**
@@ -357,20 +378,25 @@ class CashDB extends CashDBInit {
 	 * @param array $rawDataAr - BY REFERENCE
 	 */
 	private function importNormalizeRecord(&$rawDataAr) {
-		$rawDataAr[19] = $this->normalizeNumber($rawDataAr[19]); 
-		$rawDataAr[20] = $this->normalizeNumber($rawDataAr[20]); 
+		$rawDataAr[11] = $this->normalizeNumber($rawDataAr[11]); 
+		$rawDataAr[11] = $this->sollHabenNumber($rawDataAr); 
+	}
+	
+	private function sollHabenNumber($rawDataAr) {
+		$minus =  $rawDataAr[12] == 'S' ? '-' : '';
+		return $minus . $rawDataAr[11];
 	}
 	
 	private function normalizeNumber($n) {
 		if ('' == trim($n))
 			return $n;
 		
-                $matches = array();
+		$matches = array();
 		if (!preg_match('/(-?)([\d.]*),?(\d{0,2})\D?/', $n, $matches))
 			e("funny money. regex does not match: $n");
 		
 		$matches[2] = str_replace('.', '', $matches[2]); #
-		#d( "$n = ".$matches[1].$matches[2].'.'.$matches[3]);
+		d( "$n = ".$matches[1].$matches[2].'.'.$matches[3]);
 		return $matches[1].$matches[2].'.'.$matches[3];
 	}
 	
