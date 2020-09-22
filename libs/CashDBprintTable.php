@@ -58,7 +58,7 @@ class CashDBprintTable extends CashDBImport {
 				. '</td>';
 	}
 	
-	private function _get_all_buchungen_sorted() {
+	protected function _get_all_buchungen_sorted() {
 		$sql  = "SELECT * FROM buchungen";
 		$ret  = $this->runQuery($sql);
 		$buchungen = $this->toArray($ret);
