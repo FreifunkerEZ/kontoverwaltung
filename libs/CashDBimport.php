@@ -246,12 +246,12 @@ EOF;
 		}
 	}
 	
-	private function dateToYmd($dateIn) {
+	protected function dateToYmd($dateIn) {
 		if (preg_match('/(\d\d)\.(\d\d)\.(\d\d\d\d)/', $dateIn, $m))
 			return sprintf("%s-%s-%s",$m[3],$m[2],$m[1]);
 		
 		if (preg_match('/(\d\d)\.(\d\d)\.(\d\d)/', $dateIn, $m))
-			return sprintf("%s-%s-20%s",$m[3],$m[2],$m[1]);
+			return sprintf("20%s-%s-%s",$m[3],$m[2],$m[1]);
 		
 		e("Funny date: $dateIn");
 		return '';			
