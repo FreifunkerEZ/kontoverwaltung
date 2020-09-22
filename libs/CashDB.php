@@ -122,6 +122,59 @@ class CashDB extends CashDBprintTable {
 		#compare given sum to calculated sum
 	}
 	
+	/*
+	 * Find buchungen which are too far apart to see where data is missing.
+	 */
+	public function findHoles() {
+		$buchungen = $this->_get_all_buchungen_sorted();
+		$max_diff_secs = 10 * 24*3600;
+		$previous = reset($buchungen);  # prime with the first buchung by resetting the array-pointer.
+		foreach ($buchungen as $current) {
+			$this->fix_BuchungstagSortable($current);
+			$diff = abs($this->dateToEpoch($current) - $this->dateToEpoch($previous));
+			if ($diff > $max_diff_secs) {
+				d(sprintf("Loch %.0f tage zwischen %s und %s", 
+						$diff / (24*3600), 
+						$current['Buchungstag'],
+						$previous['Buchungstag']
+				));
+			}
+			$previous = $current;
+		}
+	}
+	
+	/*
+	 * Fix bad values in 'BuchungstagSortable', which are derrived from
+	 * the original value of 'Buchungstag' in a wrong way. (That bug is fixed.)
+	 * 
+	 * Will only work on broken values. 
+	 * so it will self-deactivate once all values are fixed.
+	 */
+	private function fix_BuchungstagSortable($buchung) {
+		if (preg_match('/-\d\d$/', $buchung['BuchungstagSortable']))
+			return;
+		d($buchung);
+		$sql = sprintf("UPDATE `buchungen` "
+				. "SET `BuchungstagSortable`='%s' "
+				. "WHERE ID='%s';"
+				,$this->dateToYmd($buchung['Buchungstag'])
+				,$buchung['ID']
+		);
+		$this->runQuery($sql);
+		
+	}
+	
+	private function dateToEpoch($buchung) {
+		if (preg_match('/(\d\d)\.(\d\d)\.(\d\d\d\d)/', $buchung['Buchungstag'], $m)) {
+			return mktime( 0, 0, 0, $m[2], $m[1], $m[3] );
+		}
+		if (preg_match('/(\d\d)\.(\d\d)\.(\d\d)/', $buchung['Buchungstag'], $m))
+			return mktime( 0, 0, 0, $m[2], $m[1], "20".$m[3] );
+		e($m);
+		e($buchung);
+		throw new Exception("crash on ".$buchung['Buchungstag']);
+	}
+	
 	/**
 	 * gets you tags with all columns.
 	 * 
