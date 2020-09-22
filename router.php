@@ -32,6 +32,9 @@ function routeAction($action, $db) {
 		case 'restoreTodaysBackup':
 			$db->dbBackupRestore('today');
 			break;
+		case 'findHoles':
+			$db->findHoles();
+			break;
 
 		default:
 			throw new Exception("Unknown action $action");
